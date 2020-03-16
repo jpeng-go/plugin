@@ -221,7 +221,7 @@ func TestCollateralize(t *testing.T) {
 	util.SaveKVList(env.ldb, set.KV)
 
 	p3 = &pkt.CollateralizeCollerTx{}
-	p3.Balance = totalToken * 2
+	p3.Balance = 20000
 	p3.Op = "config"
 	createTx, err = pkt.CreateRawCollateralizeCollerTx(env.cfg, p3)
 	if err != nil {
@@ -257,7 +257,7 @@ func TestCollateralize(t *testing.T) {
 		t.Error("RPC_Default_Process", "err", err)
 	}
 	createTx.Execer = []byte(pkt.CollateralizeX)
-	createTx, err = signTx(createTx, PrivKeyE)
+	createTx, err = signTx(createTx, PrivKeyD)
 	if err != nil {
 		t.Error("RPC_Default_Process sign", "err", err)
 	}
