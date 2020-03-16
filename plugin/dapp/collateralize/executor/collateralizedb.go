@@ -560,15 +560,8 @@ func (action *Action) CollateralizeLend(lend *pty.CollateralizeLend) (*types.Rec
 		return nil, types.ErrInsufficientBalance
 	}
 
-	// 根据地址查找ID
-	collateralizeIDs, err := queryCollateralizeByAddr(action.localDB, action.fromaddr, pty.CollateralizeStatusCreated, "")
-	if err != nil && err != types.ErrNotFound {
-		clog.Error("CollateralizeLend.queryCollateralizeByAddr", "addr", action.fromaddr, "error", err)
-		return nil, err
-	}
-
 	// 冻结ccny
-	receipt, err = action.tokenAccount.ExecFrozen(action.fromaddr, action.execaddr, lend.TotalBalance)
+	receipt, err := action.tokenAccount.ExecFrozen(action.fromaddr, action.execaddr, lend.TotalBalance)
 	if err != nil {
 		clog.Error("CollateralizeLend.Frozen", "addr", action.fromaddr, "execaddr", action.execaddr, "amount", lend.TotalBalance)
 		return nil, err
@@ -578,30 +571,19 @@ func (action *Action) CollateralizeLend(lend *pty.CollateralizeLend) (*types.Rec
 
 	var collateralizeID string
 	coll := &CollateralizeDB{}
-	if collateralizeIDs == nil {
-		collateralizeID = common.ToHex(action.txhash)
+	collateralizeID = common.ToHex(action.txhash)
 
-		// 构造coll结构
-		coll.CollateralizeId = collateralizeID
-		coll.LiquidationRatio = lend.LiquidationRatio
-		coll.TotalBalance = lend.TotalBalance
-		coll.StabilityFeeRatio = lend.StabilityFeeRatio
-		coll.Period = lend.Period
-		coll.Balance = lend.TotalBalance
-		coll.CreateAddr = action.fromaddr
-		coll.Status = pty.CollateralizeStatusCreated
-		coll.CollBalance = 0
-	} else {
-		collateralize, err := queryCollateralizeByID(action.db, collateralizeIDs[0])
-		if err != nil {
-			clog.Error("CollateralizeLend.queryCollateralizeByID", "addr", action.fromaddr, "execaddr", action.execaddr, "collId", collateralizeIDs[0])
-			return nil, err
-		}
-		coll.Collateralize = *collateralize
-		coll.TotalBalance += lend.TotalBalance
-		coll.Balance += lend.TotalBalance
-		coll.PreStatus = coll.Status
-	}
+	// 构造coll结构
+	coll.CollateralizeId = collateralizeID
+	coll.LiquidationRatio = lend.LiquidationRatio
+	coll.TotalBalance = lend.TotalBalance
+	coll.StabilityFeeRatio = lend.StabilityFeeRatio
+	coll.Period = lend.Period
+	coll.Balance = lend.TotalBalance
+	coll.CreateAddr = action.fromaddr
+	coll.Status = pty.CollateralizeStatusCreated
+	coll.CollBalance = 0
+
 	clog.Debug("CollateralizeLend created", "CollateralizeID", collateralizeID, "TotalBalance", lend.TotalBalance)
 
 	// 保存
