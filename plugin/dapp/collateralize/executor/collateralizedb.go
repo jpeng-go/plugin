@@ -782,7 +782,7 @@ func (action *Action) CollateralizeBorrow(borrow *pty.CollateralizeBorrow) (*typ
 
 	// 借贷金额不超过个人限额
 	cfg := action.Collateralize.GetAPI().GetConfig()
-	if !cfg.IsDappFork(action.height, pty.CollateralizeX, pty.ForkCollateralizeV1_1) {
+	if !cfg.IsDappFork(action.height, pty.CollateralizeX, pty.ForkCollateralizeV1R1) {
 		userBalance, _ := queryCollateralizeUserBalance(action.db, action.localDB, action.fromaddr)
 		if borrow.GetValue()+userBalance > coll.DebtCeiling {
 			clog.Error("CollateralizeBorrow", "CollID", coll.CollateralizeId, "addr", action.fromaddr, "execaddr", action.execaddr,

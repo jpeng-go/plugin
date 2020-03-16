@@ -50,5 +50,5 @@ const (
 
 var (
 	ForkCollateralizeTableUpdate = "ForkCollateralizeTableUpdate"
-	ForkCollateralizeV1_1 = "ForkCollateralizeV1_1"
+	ForkCollateralizeV1R1 = "ForkCollateralizeV1R1"
 )
