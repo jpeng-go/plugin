@@ -186,6 +186,6 @@ message RepIssuanceUserBalance {
 }
 
 // 返回所有发行用户
-message RepIssuanceIssuer {
+message RepIssuanceAddr {
     repeated string addr = 1; //返回所有发行用户
 }

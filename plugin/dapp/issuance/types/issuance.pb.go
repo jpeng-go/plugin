@@ -1551,39 +1551,39 @@ func (m *RepIssuanceUserBalance) GetBalance() int64 {
 }
 
 // 返回所有发行用户
-type RepIssuanceIssuer struct {
+type RepIssuanceAddr struct {
 	Addr                 []string `protobuf:"bytes,1,rep,name=addr,proto3" json:"addr,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *RepIssuanceIssuer) Reset()         { *m = RepIssuanceIssuer{} }
-func (m *RepIssuanceIssuer) String() string { return proto.CompactTextString(m) }
-func (*RepIssuanceIssuer) ProtoMessage()    {}
-func (*RepIssuanceIssuer) Descriptor() ([]byte, []int) {
+func (m *RepIssuanceAddr) Reset()         { *m = RepIssuanceAddr{} }
+func (m *RepIssuanceAddr) String() string { return proto.CompactTextString(m) }
+func (*RepIssuanceAddr) ProtoMessage()    {}
+func (*RepIssuanceAddr) Descriptor() ([]byte, []int) {
 	return fileDescriptor_7110f4228953d675, []int{25}
 }
 
-func (m *RepIssuanceIssuer) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_RepIssuanceIssuer.Unmarshal(m, b)
+func (m *RepIssuanceAddr) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RepIssuanceAddr.Unmarshal(m, b)
 }
-func (m *RepIssuanceIssuer) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_RepIssuanceIssuer.Marshal(b, m, deterministic)
+func (m *RepIssuanceAddr) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RepIssuanceAddr.Marshal(b, m, deterministic)
 }
-func (m *RepIssuanceIssuer) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_RepIssuanceIssuer.Merge(m, src)
+func (m *RepIssuanceAddr) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RepIssuanceAddr.Merge(m, src)
 }
-func (m *RepIssuanceIssuer) XXX_Size() int {
-	return xxx_messageInfo_RepIssuanceIssuer.Size(m)
+func (m *RepIssuanceAddr) XXX_Size() int {
+	return xxx_messageInfo_RepIssuanceAddr.Size(m)
 }
-func (m *RepIssuanceIssuer) XXX_DiscardUnknown() {
-	xxx_messageInfo_RepIssuanceIssuer.DiscardUnknown(m)
+func (m *RepIssuanceAddr) XXX_DiscardUnknown() {
+	xxx_messageInfo_RepIssuanceAddr.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_RepIssuanceIssuer proto.InternalMessageInfo
+var xxx_messageInfo_RepIssuanceAddr proto.InternalMessageInfo
 
-func (m *RepIssuanceIssuer) GetAddr() []string {
+func (m *RepIssuanceAddr) GetAddr() []string {
 	if m != nil {
 		return m.Addr
 	}
@@ -1616,15 +1616,15 @@ func init() {
 	proto.RegisterType((*RepIssuanceDebtInfo)(nil), "types.RepIssuanceDebtInfo")
 	proto.RegisterType((*RepIssuancePrice)(nil), "types.RepIssuancePrice")
 	proto.RegisterType((*RepIssuanceUserBalance)(nil), "types.RepIssuanceUserBalance")
-	proto.RegisterType((*RepIssuanceIssuer)(nil), "types.RepIssuanceIssuer")
+	proto.RegisterType((*RepIssuanceAddr)(nil), "types.RepIssuanceAddr")
 }
 
 func init() { proto.RegisterFile("issuance.proto", fileDescriptor_7110f4228953d675) }
 
 var fileDescriptor_7110f4228953d675 = []byte{
-	// 1087 bytes of a gzipped FileDescriptorProto
+	// 1088 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xbc, 0x57, 0x5f, 0x6f, 0xdc, 0x44,
-	0x10, 0xaf, 0xed, 0xfb, 0x3b, 0x97, 0x5c, 0xd2, 0x6d, 0x09, 0x16, 0x82, 0xea, 0xb4, 0x42, 0xe2,
+	0x10, 0xaf, 0xed, 0xfb, 0x3b, 0x97, 0x5c, 0xd2, 0x6d, 0x09, 0x16, 0x82, 0xea, 0xb4, 0x02, 0xe9,
 	0x0a, 0x28, 0x2d, 0x17, 0x84, 0xc4, 0x5b, 0x93, 0x1c, 0x90, 0x13, 0x14, 0x21, 0x53, 0x2a, 0x5e,
 	0x1d, 0x7b, 0x5b, 0x59, 0x72, 0xce, 0xae, 0xbd, 0x17, 0xf5, 0x9e, 0xf9, 0x0e, 0x3c, 0xf0, 0x71,
 	0xf8, 0x0c, 0x7c, 0x0e, 0x3e, 0x03, 0x9a, 0xd9, 0xb5, 0xd7, 0x5e, 0x5f, 0x74, 0x79, 0xe2, 0xe5,
@@ -1689,6 +1689,6 @@ var fileDescriptor_7110f4228953d675 = []byte{
 	0xbc, 0xc0, 0x78, 0xe5, 0xcd, 0xa6, 0x4b, 0x85, 0xf0, 0x14, 0x06, 0x0a, 0xa1, 0xe7, 0xfe, 0x0e,
 	0x15, 0x1a, 0xc0, 0xe7, 0x98, 0xf7, 0x5a, 0x83, 0x7a, 0x4d, 0xd5, 0xcd, 0x50, 0x8d, 0x12, 0xb5,
 	0xe0, 0x8b, 0x56, 0xdd, 0xfd, 0x56, 0x8a, 0xa2, 0xaa, 0x9d, 0x06, 0xdb, 0x9d, 0x16, 0xdb, 0xf9,
-	0x67, 0xd8, 0x71, 0x72, 0x6b, 0xe6, 0x55, 0xb1, 0x53, 0x49, 0xa0, 0xef, 0xeb, 0x01, 0xfd, 0x01,
-	0x3a, 0xfb, 0x2f, 0x00, 0x00, 0xff, 0xff, 0x02, 0x49, 0x4b, 0xc4, 0x12, 0x0d, 0x00, 0x00,
+	0x67, 0x58, 0xdf, 0xf5, 0x19, 0x6a, 0x5a, 0x55, 0xe4, 0x54, 0x0a, 0xe8, 0xfb, 0x7a, 0x40, 0x7f,
+	0x7f, 0xce, 0xfe, 0x0b, 0x00, 0x00, 0xff, 0xff, 0x51, 0x0b, 0x1e, 0x06, 0x10, 0x0d, 0x00, 0x00,
 }

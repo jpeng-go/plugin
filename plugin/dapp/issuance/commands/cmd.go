@@ -364,6 +364,28 @@ func IssuanceQueryUserBalance(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
+func IssuanceQueryIssuerCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "issuer",
+		Short: "Query issuer addr",
+		Run:   IssuanceQueryIssuer,
+	}
+	return cmd
+}
+
+func IssuanceQueryIssuer(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+
+	var params rpctypes.Query4Jrpc
+	params.Execer = pkt.IssuanceX
+	params.FuncName = "IssuanceAddr"
+	params.Payload = nil
+
+	var res pkt.RepIssuanceAddr
+	ctx := jsonrpc.NewRPCCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx.Run()
+}
+
 // IssuanceQueryCmd 查询命令行
 func IssuanceQueryCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -375,6 +397,7 @@ func IssuanceQueryCmd() *cobra.Command {
 	cmd.AddCommand(
 		IssuacneQueryPriceCmd(),
 		IssuanceQueryUserBalanceCmd(),
+		IssuanceQueryIssuerCmd(),
 	)
 	return cmd
 }
