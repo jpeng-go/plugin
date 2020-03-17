@@ -244,6 +244,10 @@ func TestCollateralize(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, set)
 	util.SaveKVList(env.ldb, set.KV)
+	// query collateralize config
+	res, err := exec.Query("CollateralizeLendStatus", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, p3.Balance * types.Coin, res.(*pkt.RepCollateralizeLendStatus).ConfigBalance)
 
 	// collateralize lend
 	p1 := &pkt.CollateralizeLendTx{
@@ -276,7 +280,7 @@ func TestCollateralize(t *testing.T) {
 	util.SaveKVList(env.ldb, set.KV)
 	collateralizeID := createTx.Hash()
 	// query collateralize by id
-	res, err := exec.Query("CollateralizeInfoByID", types.Encode(&pkt.ReqCollateralizeInfo{CollateralizeId: common.ToHex(collateralizeID)}))
+	res, err = exec.Query("CollateralizeInfoByID", types.Encode(&pkt.ReqCollateralizeInfo{CollateralizeId: common.ToHex(collateralizeID)}))
 	assert.Nil(t, err)
 	assert.NotNil(t, res)
 	// query collateralize by status
@@ -418,6 +422,10 @@ func TestCollateralize(t *testing.T) {
 		types.Encode(&pkt.ReqCollateralizeRecordByAddr{Addr: string(Nodes[1]), Status: 1}))
 	assert.Nil(t, err)
 	assert.Equal(t, int64(100)*types.Coin, res.(*pkt.RepCollateralizeUserBalance).Balance)
+	// query collateralize config
+	res, err = exec.Query("CollateralizeLendStatus", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(p4.Value) * types.Coin, res.(*pkt.RepCollateralizeLendStatus).TotalLendBalance)
 
 	// collateralize append
 	p5 := &pkt.CollateralizeAppendTx{
@@ -463,6 +471,10 @@ func TestCollateralize(t *testing.T) {
 		types.Encode(&pkt.ReqCollateralizeRecordByAddr{CollateralizeId: common.ToHex(collateralizeID), Addr: string(Nodes[1]), Status: 1}))
 	assert.Nil(t, err)
 	assert.NotNil(t, res)
+	// query collateralize config
+	res, err = exec.Query("CollateralizeLendStatus", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, 500 * types.Coin, res.(*pkt.RepCollateralizeLendStatus).TotalCollBalance)
 
 	// collateralize repay
 	p6 := &pkt.CollateralizeRepayTx{
@@ -511,6 +523,10 @@ func TestCollateralize(t *testing.T) {
 		types.Encode(&pkt.ReqCollateralizeRecordByAddr{Addr: string(Nodes[1]), Status: 1}))
 	assert.Nil(t, err)
 	assert.Equal(t, int64(0), res.(*pkt.RepCollateralizeUserBalance).Balance)
+	// query collateralize config
+	res, err = exec.Query("CollateralizeLendStatus", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(0), res.(*pkt.RepCollateralizeLendStatus).TotalCollBalance)
 
 	// collateralize liquidate
 	p7 := &pkt.CollateralizeBorrowTx{

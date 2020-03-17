@@ -238,6 +238,10 @@ func TestIssuance(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, set)
 	util.SaveKVList(env.ldb, set.KV)
+	// query issuance issuer
+	res, err = exec.Query("IssuanceIssuer", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, p3.Addr, res.(*pkt.RepIssuanceIssuer).Addr[0])
 
 	p3.Addr = string(Nodes[2])
 	createTx, err = pkt.CreateRawIssuanceIssuerTx(env.cfg, p3)

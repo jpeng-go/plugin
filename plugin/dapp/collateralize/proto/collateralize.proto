@@ -238,3 +238,11 @@ message RepCollateralizePrice {
 message RepCollateralizeUserBalance {
     int64 balance = 1; //返回用户借贷总额
 }
+
+// 返回后台管理放贷状态
+message RepCollateralizeLendStatus {
+    int64 recordNum        = 1; //合约数量
+    int64 totalCollBalance = 2; //已抵押bty
+    int64 totalLendBalance = 3; //已放出ccny
+    int64 configBalance    = 4; //放贷仓位配置
+}

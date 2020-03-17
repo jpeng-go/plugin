@@ -394,21 +394,27 @@ func (action *Action) IssuanceManage(manage *pty.IssuanceManage) (*types.Receipt
 	return receipt, nil
 }
 
-func (action *Action) getSuperAddr() []string {
-	data, err := action.db.Get(AddrKey())
+func getSuperAddr(db dbm.KV) ([]string, error) {
+	var addrs []string
+
+	data, err := db.Get(AddrKey())
 	if err != nil {
 		clog.Error("getSuperAddr", "error", err)
-		return nil
+		return nil, err
 	}
 
-	var addrStore pty.IssuanceManage
-	err = types.Decode(data, &addrStore)
+	var item types.ConfigItem
+	err = types.Decode(data, &item)
 	if err != nil {
-		clog.Debug("getSuperAddr", "decode", err)
-		return nil
+		clog.Error("isSuperAddr", "Decode", data)
+		return nil, err
 	}
 
-	return addrStore.SuperAddrs
+	for _, op := range item.GetArr().Value {
+		addrs = append(addrs, op)
+	}
+
+	return addrs, nil
 }
 
 // IssuanceCreate 创建借贷，持有一定数量ccny的用户可创建借贷，提供给其他用户借贷

@@ -184,3 +184,8 @@ message RepIssuancePrice {
 message RepIssuanceUserBalance {
     int64 balance = 1; //返回用户发行总额
 }
+
+// 返回所有发行用户
+message RepIssuanceIssuer {
+    repeated string addr = 1; //返回所有发行用户
+}

@@ -132,3 +132,14 @@ func (c *Issuance) Query_IssuanceUserBalance(req *pty.ReqIssuanceRecords) (types
 
 	return &pty.RepIssuanceUserBalance{Balance: balance}, nil
 }
+
+func (c *Issuance) Query_IssuanceIssuer(req *pty.ReqIssuanceRecords) (types.Message, error) {
+	addrs, err := getSuperAddr(c.GetStateDB())
+	if err != nil {
+		clog.Error("Query_IssuanceRecordByAddr", "get issuance record error", err)
+		return nil, err
+	}
+
+	return &pty.RepIssuanceIssuer{Addr: addrs}, nil
+}
+
