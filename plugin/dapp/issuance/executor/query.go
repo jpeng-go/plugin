@@ -109,7 +109,11 @@ func (c *Issuance) Query_IssuanceRecordsByStatus(req *pty.ReqIssuanceRecords) (t
 		return nil, err
 	}
 
-	ret.Records = append(ret.Records, records...)
+	for _, record := range records {
+		if record.Status == req.Status {
+			ret.Records = append(ret.Records, record)
+		}
+	}
 	return ret, nil
 }
 

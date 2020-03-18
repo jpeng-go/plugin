@@ -212,3 +212,32 @@ func (c *Collateralize) Query_CollateralizeLendStatus(req *pty.ReqCollateralizeR
 
 	return rep, nil
 }
+
+func (c *Collateralize) Query_CollateralizeLenderBalance(req *pty.ReqCollateralizeByAddr) (types.Message, error) {
+	var collIDs []string
+	var collIDRecords []string
+
+	collIDRecords, _ = queryCollateralizeByAddr(c.GetLocalDB(), req.Addr, pty.CollateralizeStatusCreated, "")
+	if len(collIDRecords) != 0 {
+		collIDs = append(collIDs, collIDRecords...)
+		for ; len(collIDRecords) == int(DefaultCount); {
+			collIDRecords, _ = queryCollateralizeByAddr(c.GetLocalDB(), req.Addr, pty.CollateralizeStatusCreated, collIDRecords[DefaultCount-1])
+			if len(collIDRecords) != 0 {
+				collIDs = append(collIDs, collIDRecords...)
+			}
+		}
+	}
+
+	rep := &pty.RepCollateralizeLenderBalance{}
+	for _, collID := range collIDs {
+		collInfo, err := queryCollateralizeByID(c.GetStateDB(), collID)
+		if err != nil {
+			clog.Error("Query_CollateralizeInfoByID", "id", collID, "error", err)
+			return nil, err
+		}
+		rep.TotalLendingBalance += collInfo.Balance
+		rep.TotalLentBalance += (collInfo.TotalBalance - collInfo.Balance)
+	}
+
+	return rep, nil
+}

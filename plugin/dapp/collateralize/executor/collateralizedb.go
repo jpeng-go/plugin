@@ -1132,14 +1132,14 @@ func getGuarantorAddr(db dbm.KV) (string, error) {
 }
 
 func removeLiquidateRecord(borrowRecords []*pty.BorrowRecord, remove pty.BorrowRecord) []*pty.BorrowRecord {
-	for index, record := range borrowRecords {
-		if record.RecordId == remove.RecordId {
-			borrowRecords = append(borrowRecords[:index], borrowRecords[index+1:]...)
-			break
+	var newRecord = make([]*pty.BorrowRecord, 0)
+	for _, record := range borrowRecords {
+		if record.RecordId != remove.RecordId {
+			newRecord = append(newRecord, record)
 		}
 	}
 
-	return borrowRecords
+	return newRecord
 }
 
 // 系统清算

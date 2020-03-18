@@ -246,3 +246,9 @@ message RepCollateralizeLendStatus {
     int64 totalLendBalance = 3; //已放出ccny
     int64 configBalance    = 4; //放贷仓位配置
 }
+
+// 返回放贷用户放贷总额
+message RepCollateralizeLenderBalance {
+    int64 totalLentBalance = 1; //已放出总额
+    int64 totalLendingBalance = 2; //待放出总额
+}

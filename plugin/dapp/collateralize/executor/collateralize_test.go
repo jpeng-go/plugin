@@ -426,6 +426,11 @@ func TestCollateralize(t *testing.T) {
 	res, err = exec.Query("CollateralizeLendStatus", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(p4.Value) * types.Coin, res.(*pkt.RepCollateralizeLendStatus).TotalLendBalance)
+	// query collateralizes lender balance
+	res, err = exec.Query("CollateralizeLenderBalance", types.Encode(&pkt.ReqCollateralizeByAddr{Addr: string(Nodes[3])}))
+	assert.Nil(t, err)
+	assert.Equal(t, 1900 * types.Coin, res.(*pkt.RepCollateralizeLenderBalance).TotalLendingBalance)
+	assert.Equal(t, 100 * types.Coin, res.(*pkt.RepCollateralizeLenderBalance).TotalLentBalance)
 
 	// collateralize append
 	p5 := &pkt.CollateralizeAppendTx{

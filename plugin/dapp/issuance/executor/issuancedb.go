@@ -771,14 +771,14 @@ func (action *Action) IssuanceRepay(repay *pty.IssuanceRepay) (*types.Receipt, e
 }
 
 func removeLiquidateRecord(debtRecords []*pty.DebtRecord, remove pty.DebtRecord) []*pty.DebtRecord {
-	for index, record := range debtRecords {
-		if record.DebtId == remove.DebtId {
-			debtRecords = append(debtRecords[:index], debtRecords[index+1:]...)
-			break
+	var newRecord = make([]*pty.DebtRecord, 0)
+	for _, record := range debtRecords {
+		if record.DebtId != remove.DebtId {
+			newRecord = append(newRecord, record)
 		}
 	}
 
-	return debtRecords
+	return newRecord
 }
 
 // 系统清算

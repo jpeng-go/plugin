@@ -446,6 +446,38 @@ func CollateralizeQueryLendStatus(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
+func CollateralizeQueryLenderBalanceCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "lender",
+		Short: "Query lender balance",
+		Run:   CollateralizeQueryLenderBalance,
+	}
+	addCollateralizeQueryLenderBalanceFlags(cmd)
+	return cmd
+}
+
+func addCollateralizeQueryLenderBalanceFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("address", "a", "", "address")
+	cmd.MarkFlagRequired("address")
+}
+
+func CollateralizeQueryLenderBalance(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	addr, _ := cmd.Flags().GetString("address")
+
+	var params rpctypes.Query4Jrpc
+	params.Execer = pkt.CollateralizeX
+
+	params.FuncName = "CollateralizeLenderBalance"
+	req := &pkt.ReqCollateralizeByAddr{
+		Addr: addr,
+	}
+	params.Payload = types.MustPBToJSON(req)
+
+	var res pkt.RepCollateralizeLenderBalance
+	ctx := jsonrpc.NewRPCCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx.Run()
+}
 
 func CollateralizeQueryPriceCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -513,6 +545,7 @@ func CollateralizeQueryCmd() *cobra.Command {
 		CollateralizeQueryPriceCmd(),
 		CollateralizeQueryUserBalanceCmd(),
 		CollateralizeQueryLendStatusCmd(),
+		CollateralizeQueryLenderBalanceCmd(),
 	)
 	return cmd
 }
