@@ -374,9 +374,13 @@ func CollateralizeLendRawTxCmd() *cobra.Command {
 
 func addCollateralizeLendFlags(cmd *cobra.Command) {
 	cmd.Flags().Float64P("liquidationRatio", "l", 0, "liquidationRatio")
+	cmd.MarkFlagRequired("liquidationRatio")
 	cmd.Flags().Float64P("stabilityFeeRatio", "s", 0, "stabilityFeeRatio")
+	cmd.MarkFlagRequired("stabilityFeeRatio")
 	cmd.Flags().Uint64P("period", "p", 0, "period")
+	cmd.MarkFlagRequired("period")
 	cmd.Flags().Float64P("totalBalance", "b", 0, "totalBalance")
+	cmd.MarkFlagRequired("totalBalance")
 }
 
 func CollateralizeLend(cmd *cobra.Command, args []string) {
