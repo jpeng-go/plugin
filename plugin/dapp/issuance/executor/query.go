@@ -27,6 +27,7 @@ func (c *Issuance) Query_IssuanceInfoByID(req *pty.ReqIssuanceInfo) (types.Messa
 		Period:           issu.Period,
 		IssuId:           issu.IssuanceId,
 		CreateTime:       issu.CreateTime,
+		RecordNum:        int64(len(issu.DebtRecords) + len(issu.InvalidRecords)),
 	}, nil
 }
 
@@ -50,6 +51,7 @@ func (c *Issuance) Query_IssuanceInfoByIDs(req *pty.ReqIssuanceInfos) (types.Mes
 			Period:           issu.Period,
 			IssuId:           issu.IssuanceId,
 			CreateTime:       issu.CreateTime,
+			RecordNum:        int64(len(issu.DebtRecords) + len(issu.InvalidRecords)),
 		})
 	}
 
