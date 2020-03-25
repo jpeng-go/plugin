@@ -172,6 +172,7 @@ func (c *Collateralize) Query_CollateralizePrice(req *pty.ReqCollateralizeRecord
 	return &pty.RepCollateralizePrice{Price: price}, nil
 }
 
+// 查询用户借贷金额
 func (c *Collateralize) Query_CollateralizeUserBalance(req *pty.ReqCollateralizeRecordByAddr) (types.Message, error) {
 	balance, err := queryCollateralizeUserBalance(c.GetStateDB(), c.GetLocalDB(), req.Addr)
 	if err != nil {
@@ -182,19 +183,20 @@ func (c *Collateralize) Query_CollateralizeUserBalance(req *pty.ReqCollateralize
 	return &pty.RepCollateralizeUserBalance{Balance: balance}, nil
 }
 
+// 查询放贷总状态
 func (c *Collateralize) Query_CollateralizeLendStatus(req *pty.ReqCollateralizeRecordByAddr) (types.Message, error) {
 	var collIDs []string
 	var collIDRecords []string
+	var primary string
 
-	collIDRecords, _ = queryCollateralizeByStatus(c.GetLocalDB(), pty.CollateralizeStatusCreated, "")
-	if len(collIDRecords) != 0 {
+	for {
+		collIDRecords, _ = queryCollateralizeByStatus(c.GetLocalDB(), pty.CollateralizeStatusCreated, primary)
 		collIDs = append(collIDs, collIDRecords...)
-		for ; len(collIDRecords) == int(DefaultCount); {
-			collIDRecords, _ = queryCollateralizeByStatus(c.GetLocalDB(), pty.CollateralizeStatusCreated, collIDRecords[DefaultCount-1])
-			if len(collIDRecords) != 0 {
-				collIDs = append(collIDs, collIDRecords...)
-			}
+
+		if len(collIDRecords) < int(DefaultCount) {
+			break
 		}
+		primary = collIDRecords[DefaultCount-1]
 	}
 
 	rep := &pty.RepCollateralizeLendStatus{}
@@ -213,19 +215,20 @@ func (c *Collateralize) Query_CollateralizeLendStatus(req *pty.ReqCollateralizeR
 	return rep, nil
 }
 
+// 查询大户已放出和待放出金额
 func (c *Collateralize) Query_CollateralizeLenderBalance(req *pty.ReqCollateralizeByAddr) (types.Message, error) {
 	var collIDs []string
 	var collIDRecords []string
+	var primary string
 
-	collIDRecords, _ = queryCollateralizeByAddr(c.GetLocalDB(), req.Addr, pty.CollateralizeStatusCreated, "")
-	if len(collIDRecords) != 0 {
+	for {
+		collIDRecords, _ = queryCollateralizeByAddr(c.GetLocalDB(), req.Addr, pty.CollateralizeStatusCreated, primary)
 		collIDs = append(collIDs, collIDRecords...)
-		for ; len(collIDRecords) == int(DefaultCount); {
-			collIDRecords, _ = queryCollateralizeByAddr(c.GetLocalDB(), req.Addr, pty.CollateralizeStatusCreated, collIDRecords[DefaultCount-1])
-			if len(collIDRecords) != 0 {
-				collIDs = append(collIDs, collIDRecords...)
-			}
+
+		if len(collIDRecords) < int(DefaultCount) {
+			break
 		}
+		primary = collIDRecords[DefaultCount-1]
 	}
 
 	rep := &pty.RepCollateralizeLenderBalance{}

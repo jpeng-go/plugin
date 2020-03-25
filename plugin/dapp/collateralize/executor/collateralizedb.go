@@ -1333,7 +1333,7 @@ func (action *Action) CollateralizeFeed(feed *pty.CollateralizeFeed) (*types.Rec
 		return nil, pty.ErrPriceInvalid
 	}
 
-	ids, err := queryCollateralizeByStatus(action.localDB, pty.CollateralizeStatusCreated, "")
+	ids, err := queryCollateralizeByStatusInternal(action.localDB, pty.CollateralizeStatusCreated)
 	if err != nil {
 		clog.Debug("CollateralizePriceFeed", "get collateralize record error", err)
 	}
@@ -1429,7 +1429,7 @@ func (action *Action) CollateralizeRetrieve(retrieve *pty.CollateralizeRetrieve)
 	return &types.Receipt{Ty: types.ExecOk, KV: kv, Logs: logs}, nil
 }
 
-// 查找借贷
+// 根据放贷ID查询放贷
 func queryCollateralizeByID(db dbm.KV, collateralizeID string) (*pty.Collateralize, error) {
 	data, err := db.Get(Key(collateralizeID))
 	if err != nil {
@@ -1446,6 +1446,7 @@ func queryCollateralizeByID(db dbm.KV, collateralizeID string) (*pty.Collaterali
 	return &coll, nil
 }
 
+// 根据放贷状态查询放贷
 func queryCollateralizeByStatus(localdb dbm.KVDB, status int32, collID string) ([]string, error) {
 	query := pty.NewCollateralizeTable(localdb).GetQuery(localdb)
 	var primary []byte
@@ -1471,6 +1472,31 @@ func queryCollateralizeByStatus(localdb dbm.KVDB, status int32, collID string) (
 	return ids, nil
 }
 
+// 根据放贷状态查询所有放贷，喂价使用
+func queryCollateralizeByStatusInternal(localdb dbm.KVDB, status int32) ([]string, error) {
+	query := pty.NewCollateralizeTable(localdb).GetQuery(localdb)
+	var primary []byte
+	var data = &pty.ReceiptCollateralize{
+		Status:      status,
+	}
+
+	var ids []string
+	for {
+		rows, _ := query.List("status", data, primary, DefaultCount, ListDESC)
+		for _, row := range rows {
+			ids = append(ids, string(row.Primary))
+		}
+
+		if len(rows) < int(DefaultCount) {
+			break
+		}
+		primary = rows[DefaultCount-1].Primary
+	}
+
+	return ids, nil
+}
+
+// 根据大户地址和状态查询放贷
 func queryCollateralizeByAddr(localdb dbm.KVDB, addr string, status int32, collID string) ([]string, error) {
 	query := pty.NewCollateralizeTable(localdb).GetQuery(localdb)
 	var primary []byte
@@ -1529,6 +1555,7 @@ func queryCollateralizeRecordByID(db dbm.KV, collateralizeID string, recordID st
 	return nil, types.ErrNotFound
 }
 
+// 根据借贷用户地址查找借贷记录
 func queryCollateralizeRecordByAddr(db dbm.KV, localdb dbm.KVDB, addr string, status int32, collID string, recordID string) ([]*pty.BorrowRecord, error) {
 	query := pty.NewRecordTable(localdb).GetQuery(localdb)
 	var primary []byte
@@ -1577,6 +1604,7 @@ func queryCollateralizeRecordByAddr(db dbm.KV, localdb dbm.KVDB, addr string, st
 	return records, nil
 }
 
+// 根据借贷状态查找借贷记录
 func queryCollateralizeRecordByStatus(db dbm.KV, localdb dbm.KVDB, status int32, collID string, recordID string) ([]*pty.BorrowRecord, error) {
 	query := pty.NewRecordTable(localdb).GetQuery(localdb)
 	var primary []byte
@@ -1618,6 +1646,7 @@ func queryCollateralizeRecordByStatus(db dbm.KV, localdb dbm.KVDB, status int32,
 	return records, nil
 }
 
+// 根据状态查找借贷用户借贷金额
 func queryCollateralizeUserBalanceStatus(db dbm.KV, localdb dbm.KVDB, addr string, status int32) (int64, error) {
 	var totalBalance int64
 	query := pty.NewRecordTable(localdb).GetQuery(localdb)
@@ -1628,14 +1657,8 @@ func queryCollateralizeUserBalanceStatus(db dbm.KV, localdb dbm.KVDB, addr strin
 	}
 
 	var rows []*table.Row
-	var err error
-
 	for {
-		rows, err = query.List("addr_status", data, primary, DefaultCount, ListDESC)
-		if err != nil {
-			return -1, err
-		}
-
+		rows, _ = query.List("addr_status", data, primary, DefaultCount, ListDESC)
 		for _, row := range rows {
 			record, err := queryCollateralizeRecordByID(db, row.Data.(*pty.ReceiptCollateralize).CollateralizeId, row.Data.(*pty.ReceiptCollateralize).RecordId)
 			if err != nil {
@@ -1653,6 +1676,7 @@ func queryCollateralizeUserBalanceStatus(db dbm.KV, localdb dbm.KVDB, addr strin
 	return totalBalance, nil
 }
 
+// 根据借贷地址查找用户借贷金额
 func queryCollateralizeUserBalance(db dbm.KV, localdb dbm.KVDB, addr string) (int64, error) {
 	var totalBalance int64
 

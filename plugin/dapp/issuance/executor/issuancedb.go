@@ -971,7 +971,7 @@ func (action *Action) IssuanceFeed(feed *pty.IssuanceFeed) (*types.Receipt, erro
 		return nil, pty.ErrPriceInvalid
 	}
 
-	ids, err := queryIssuanceByStatus(action.localDB, pty.IssuanceStatusCreated, "")
+	ids, err := queryIssuanceByStatusInternal(action.localDB, pty.IssuanceStatusCreated)
 	if err != nil {
 		clog.Debug("IssuancePriceFeed", "get issuance record error", err)
 	}
@@ -1107,6 +1107,30 @@ func queryIssuanceByStatus(localdb dbm.KVDB, status int32, issuanceID string) ([
 	return ids, nil
 }
 
+// 根据发行状态查找所有发行ID
+func queryIssuanceByStatusInternal(localdb dbm.KVDB, status int32) ([]string, error) {
+	query := pty.NewIssuanceTable(localdb).GetQuery(localdb)
+	var primary []byte
+	var ids []string
+
+	var data = &pty.ReceiptIssuanceID{
+		Status:     status,
+	}
+	for {
+		rows, _ := query.List("status", data, primary, DefaultCount, ListDESC)
+		for _, row := range rows {
+			ids = append(ids, string(row.Primary))
+		}
+
+		if len(rows) < int(DefaultCount) {
+			break
+		}
+		primary = rows[DefaultCount-1].Primary
+	}
+
+	return ids, nil
+}
+
 // 精确查找发行记录
 func queryIssuanceRecordByID(db dbm.KV, issuanceID string, debtID string) (*pty.DebtRecord, error) {
 	issu, err := queryIssuanceByID(db, issuanceID)
@@ -1202,6 +1226,7 @@ func queryIssuanceRecordByAddr(db dbm.KV, localdb dbm.KVDB, addr string, status 
 	return records, nil
 }
 
+// 根据地址和状态查找大户用户发行金额
 func queryIssuanceUserBalanceStatus(db dbm.KV, localdb dbm.KVDB, addr string, status int32) (int64, error) {
 	var totalBalance int64
 	query := pty.NewRecordTable(localdb).GetQuery(localdb)
@@ -1212,14 +1237,8 @@ func queryIssuanceUserBalanceStatus(db dbm.KV, localdb dbm.KVDB, addr string, st
 	}
 
 	var rows []*table.Row
-	var err error
-
 	for {
-		rows, err = query.List("addr_status", data, primary, DefaultCount, ListDESC)
-		if err != nil {
-			return -1, err
-		}
-
+		rows, _ = query.List("addr_status", data, primary, DefaultCount, ListDESC)
 		for _, row := range rows {
 			record, err := queryIssuanceRecordByID(db, row.Data.(*pty.ReceiptIssuance).IssuanceId, row.Data.(*pty.ReceiptIssuance).DebtId)
 			if err != nil {
@@ -1237,6 +1256,7 @@ func queryIssuanceUserBalanceStatus(db dbm.KV, localdb dbm.KVDB, addr string, st
 	return totalBalance, nil
 }
 
+// 根据地址查找大户用户发行金额
 func queryIssuanceUserBalance(db dbm.KV, localdb dbm.KVDB, addr string) (int64, error) {
 	var totalBalance int64
 
