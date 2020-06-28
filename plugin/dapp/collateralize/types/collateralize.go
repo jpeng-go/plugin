@@ -27,6 +27,7 @@ func init() {
 func InitFork(cfg *types.Chain33Config) {
 	cfg.RegisterDappFork(CollateralizeX, "Enable", 0)
 	cfg.RegisterDappFork(CollateralizeX, ForkCollateralizeTableUpdate, 0)
+	cfg.RegisterDappFork(CollateralizeX, ForkCollateralizeV1_1, 0)
 }
 
 func InitExecutor(cfg *types.Chain33Config) {
@@ -60,6 +61,7 @@ func (collateralize *CollateralizeType) GetLogMap() map[int64]*types.LogInfo {
 		TyLogCollateralizeAppend:   {Ty: reflect.TypeOf(ReceiptCollateralize{}), Name: "LogCollateralizeAppend"},
 		TyLogCollateralizeFeed:     {Ty: reflect.TypeOf(ReceiptCollateralize{}), Name: "LogCollateralizeFeed"},
 		TyLogCollateralizeRetrieve: {Ty: reflect.TypeOf(ReceiptCollateralize{}), Name: "LogCollateralizeRetrieve"},
+		TyLogCollateralizeLend:     {Ty: reflect.TypeOf(ReceiptCollateralize{}), Name: "LogCollateralizeLend"},
 	}
 }
 
@@ -129,6 +131,22 @@ func (collateralize CollateralizeType) CreateTx(action string, message json.RawM
 			return nil, types.ErrInvalidParam
 		}
 		return CreateRawCollateralizeManageTx(cfg, &param)
+	} else if action == "CollateralizeColler" {
+		var param CollateralizeCollerTx
+		err := json.Unmarshal(message, &param)
+		if err != nil {
+			llog.Error("CreateTx", "Error", err)
+			return nil, types.ErrInvalidParam
+		}
+		return CreateRawCollateralizeCollerTx(cfg, &param)
+	} else if action == "CollateralizeLend" {
+		var param CollateralizeLendTx
+		err := json.Unmarshal(message, &param)
+		if err != nil {
+			llog.Error("CreateTx", "Error", err)
+			return nil, types.ErrInvalidParam
+		}
+		return CreateRawCollateralizeLendTx(cfg, &param)
 	} else {
 		return nil, types.ErrNotSupport
 	}
@@ -144,6 +162,8 @@ func (collateralize CollateralizeType) GetTypeMap() map[string]int32 {
 		"Feed":     CollateralizeActionFeed,
 		"Retrieve": CollateralizeActionRetrieve,
 		"Manage":   CollateralizeActionManage,
+		"Coller":   CollateralizeActionColler,
+		"Lend":     CollateralizeActionLend,
 	}
 }
 
@@ -348,6 +368,67 @@ func CreateRawCollateralizeManageTx(cfg *types.Chain33Config, parm *Collateraliz
 	tx := &types.Transaction{
 		Execer:  []byte(cfg.ExecName(CollateralizeX)),
 		Payload: types.Encode(manage),
+		Fee:     parm.Fee,
+		To:      address.ExecAddress(cfg.ExecName(CollateralizeX)),
+	}
+
+	name := cfg.ExecName(CollateralizeX)
+	tx, err := types.FormatTx(cfg, name, tx)
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
+}
+
+// CreateRawCollateralizeCollerTx method
+func CreateRawCollateralizeCollerTx(cfg *types.Chain33Config, parm *CollateralizeCollerTx) (*types.Transaction, error) {
+	if parm == nil {
+		llog.Error("CreateRawCollateralizeCollerTx", "parm", parm)
+		return nil, types.ErrInvalidParam
+	}
+
+	v := &CollateralizeColler{CollerAddr: parm.Addr, Op: parm.Op, Balance: parm.Balance*1e8}
+
+	coller := &CollateralizeAction{
+		Ty:    CollateralizeActionColler,
+		Value: &CollateralizeAction_Coller{v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte(cfg.ExecName(CollateralizeX)),
+		Payload: types.Encode(coller),
+		Fee:     parm.Fee,
+		To:      address.ExecAddress(cfg.ExecName(CollateralizeX)),
+	}
+
+	name := cfg.ExecName(CollateralizeX)
+	tx, err := types.FormatTx(cfg, name, tx)
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
+}
+
+// CreateRawCollateralizeLendTx method
+func CreateRawCollateralizeLendTx(cfg *types.Chain33Config, parm *CollateralizeLendTx) (*types.Transaction, error) {
+	if parm == nil {
+		llog.Error("CreateRawCollateralizeManageTx", "parm", parm)
+		return nil, types.ErrInvalidParam
+	}
+
+	v := &CollateralizeLend{
+		LiquidationRatio:  int64(math.Trunc((parm.LiquidationRatio + 0.0000001) * 1e4)),
+		StabilityFeeRatio: int64(math.Trunc((parm.StabilityFeeRatio + 0.0000001) * 1e4)),
+		Period:            parm.Period,
+		TotalBalance:      int64(math.Trunc((parm.TotalBalance+0.0000001)*1e4)) * 1e4,
+	}
+
+	lend := &CollateralizeAction{
+		Ty:    CollateralizeActionLend,
+		Value: &CollateralizeAction_Lend{v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte(cfg.ExecName(CollateralizeX)),
+		Payload: types.Encode(lend),
 		Fee:     parm.Fee,
 		To:      address.ExecAddress(cfg.ExecName(CollateralizeX)),
 	}

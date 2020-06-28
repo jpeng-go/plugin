@@ -26,6 +26,7 @@ func IssuanceCmd() *cobra.Command {
 		IssuancePriceFeedRawTxCmd(),
 		IssuanceCloseRawTxCmd(),
 		IssuanceManageRawTxCmd(),
+		IssuanceIssuerRawTxCmd(),
 		IssuanceQueryCmd(),
 	)
 
@@ -263,6 +264,46 @@ func IssuanceManage(cmd *cobra.Command, args []string) {
 		Execer:     cfg.ExecName(pkt.IssuanceX),
 		ActionName: "IssuanceManage",
 		Payload:    []byte(fmt.Sprintf("{\"addr\":[\"%s\"]}", addr)),
+	}
+
+	var res string
+	ctx := jsonrpc.NewRPCCtx(rpcLaddr, "Chain33.CreateTransaction", params, &res)
+	ctx.RunWithoutMarshal()
+}
+
+// IssuanceIssuerRawTxCmd 生成开始交易命令行
+func IssuanceIssuerRawTxCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "issuer",
+		Short: "issuer setting",
+		Run:   IssuanceIssuer,
+	}
+	addIssuanceIssuerFlags(cmd)
+	return cmd
+}
+
+func addIssuanceIssuerFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("addr", "a", "", "addr")
+	cmd.MarkFlagRequired("addr")
+	cmd.Flags().StringP("op", "o", "", "op")
+	cmd.MarkFlagRequired("op")
+}
+
+func IssuanceIssuer(cmd *cobra.Command, args []string) {
+	title, _ := cmd.Flags().GetString("title")
+	cfg := types.GetCliSysParam(title)
+	if cfg == nil {
+		panic(fmt.Sprintln("can not find CliSysParam title", title))
+	}
+
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	addr, _ := cmd.Flags().GetString("addr")
+	op, _ := cmd.Flags().GetString("op")
+
+	params := &rpctypes.CreateTxIn{
+		Execer:     cfg.ExecName(pkt.IssuanceX),
+		ActionName: "IssuanceIssuer",
+		Payload:    []byte(fmt.Sprintf("{\"addr\":\"%s\", \"op\":\"%s\"}", addr, op)),
 	}
 
 	var res string

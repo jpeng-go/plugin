@@ -22,14 +22,14 @@ func (c *Collateralize) execLocal(tx *types.Transaction, receipt *types.ReceiptD
 	}
 
 	for _, item := range receipt.Logs {
-		if item.Ty >= pty.TyLogCollateralizeCreate && item.Ty <= pty.TyLogCollateralizeRetrieve {
+		if item.Ty >= pty.TyLogCollateralizeCreate && item.Ty <= pty.TyLogCollateralizeLend {
 			var collateralizeLog pty.ReceiptCollateralize
 			err := types.Decode(item.Log, &collateralizeLog)
 			if err != nil {
 				return nil, err
 			}
 
-			if item.Ty == pty.TyLogCollateralizeCreate || item.Ty == pty.TyLogCollateralizeRetrieve {
+			if item.Ty == pty.TyLogCollateralizeCreate || item.Ty == pty.TyLogCollateralizeRetrieve || item.Ty == pty.TyLogCollateralizeLend {
 				if !cfg.IsDappFork(c.GetHeight(), pty.CollateralizeX, pty.ForkCollateralizeTableUpdate) {
 					collTable = pty.NewCollateralizeTable(c.GetLocalDB())
 				}
@@ -103,5 +103,10 @@ func (c *Collateralize) ExecLocal_Retrieve(payload *pty.CollateralizeRetrieve, t
 
 // ExecLocal_Manage Action
 func (c *Collateralize) ExecLocal_Manage(payload *pty.CollateralizeManage, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	return c.execLocal(tx, receiptData)
+}
+
+// ExecLocal_Lend Action
+func (c *Collateralize) ExecLocal_Lend(payload *pty.CollateralizeLend, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	return c.execLocal(tx, receiptData)
 }

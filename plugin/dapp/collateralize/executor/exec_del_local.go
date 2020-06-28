@@ -53,3 +53,8 @@ func (c *Collateralize) ExecDelLocal_Retrieve(payload *pty.CollateralizeRetrieve
 func (c *Collateralize) ExecDelLocal_Manage(payload *pty.CollateralizeManage, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	return c.execDelLocal(tx, receiptData)
 }
+
+// ExecDelLocal_Lend Action
+func (c *Collateralize) ExecDelLocal_Lend(payload *pty.CollateralizeLend, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	return c.execDelLocal(tx, receiptData)
+}

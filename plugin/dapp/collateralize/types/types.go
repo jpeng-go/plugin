@@ -13,6 +13,8 @@ const (
 	CollateralizeActionFeed
 	CollateralizeActionRetrieve
 	CollateralizeActionManage
+	CollateralizeActionColler
+	CollateralizeActionLend
 
 	//log for Collateralize
 	TyLogCollateralizeCreate   = 731
@@ -21,6 +23,7 @@ const (
 	TyLogCollateralizeAppend   = 734
 	TyLogCollateralizeFeed     = 735
 	TyLogCollateralizeRetrieve = 736
+	TyLogCollateralizeLend     = 737
 )
 
 // Collateralize name
@@ -36,13 +39,6 @@ const (
 	CollateralizeStatusClose
 )
 
-//暂时只支持bty
-//const (
-//	CollateralizeAssetTypeBty = 1 + iota
-//	CollateralizeAssetTypeBtc
-//	CollateralizeAssetTypeEth
-//)
-
 const (
 	CollateralizeUserStatusCreate = 1 + iota
 	CollateralizeUserStatusWarning
@@ -54,4 +50,5 @@ const (
 
 var (
 	ForkCollateralizeTableUpdate = "ForkCollateralizeTableUpdate"
+	ForkCollateralizeV1_1 = "ForkCollateralizeV1_1"
 )

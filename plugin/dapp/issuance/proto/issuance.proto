@@ -46,18 +46,24 @@ message IssuanceAssetPriceRecord {
 // action
 message IssuanceAction {
     oneof value {
-        IssuanceCreate create = 1; //创建一期发行
-        IssuanceDebt   debt   = 2; //抵押
-        IssuanceRepay  repay  = 3; //清算
-        IssuanceFeed   feed   = 4; //喂价
-        IssuanceClose  close  = 5; //关闭
-        IssuanceManage manage = 6; //全局配置
+        IssuanceCreate    create = 1; //创建一期发行
+        IssuanceDebt      debt   = 2; //抵押
+        IssuanceRepay     repay  = 3; //清算
+        IssuanceFeed      feed   = 4; //喂价
+        IssuanceClose     close  = 5; //关闭
+        IssuanceManage    manage = 6; //全局配置
+        IssuanceIssuer    issuer = 7; //配置发行权限
     }
     int32 ty = 10;
 }
 
 message IssuanceManage {
     repeated string superAddrs = 1; //大户地址
+}
+
+message IssuanceIssuer {
+    string issuerAddr = 1; //大户地址
+    string op         = 2; //操作："add","delete"
 }
 
 // 创建发行

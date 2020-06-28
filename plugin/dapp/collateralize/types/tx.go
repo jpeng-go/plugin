@@ -55,3 +55,20 @@ type CollateralizeManageTx struct {
 	TotalBalance      float64 `json:"totalBalance"`
 	Fee               int64   `json:"fee"`
 }
+
+// CollateralizeCollerTx for construction
+type CollateralizeCollerTx struct {
+	Addr      string   `json:"addr"`
+	Op        string   `json:"op"`
+	Balance   int64    `json:"balance"`
+	Fee       int64    `json:"fee"`
+}
+
+// CollateralizeLendTx for construction
+type CollateralizeLendTx struct {
+	LiquidationRatio  float64 `json:"liquidationRatio"`
+	StabilityFeeRatio float64 `json:"stabilityFeeRatio"`
+	Period            int64   `json:"period"`
+	TotalBalance      float64 `json:"totalBalance"`
+	Fee               int64   `json:"fee"`
+}

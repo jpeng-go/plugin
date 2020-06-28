@@ -44,3 +44,9 @@ func (c *Issuance) Exec_Manage(payload *pty.IssuanceManage, tx *types.Transactio
 	actiondb := NewIssuanceAction(c, tx, index)
 	return actiondb.IssuanceManage(payload)
 }
+
+// Exec_ManageS Action
+func (c *Issuance) Exec_Issuer(payload *pty.IssuanceIssuer, tx *types.Transaction, index int) (*types.Receipt, error) {
+	actiondb := NewIssuanceAction(c, tx, index)
+	return actiondb.IssuanceIssuer(payload)
+}

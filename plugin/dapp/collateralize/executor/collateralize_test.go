@@ -37,13 +37,17 @@ var (
 	PrivKeyA = "0x6da92a632ab7deb67d38c0f6560bcfed28167998f6496db64c258d5e8393a81b" // 1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4
 	PrivKeyB = "0x19c069234f9d3e61135fefbeb7791b149cdf6af536f26bebb310d4cd22c3fee4" // 1JRNjdEqp4LJ5fqycUBm9ayCKSeeskgMKR
 	PrivKeyC = "0xc2b31057b8692a56c7dd18199df71c1d21b781c0b6858c52997c9dbf778e8550" // 12evczYyX9ZKPYvwSEvRkRyTjpSrJuLudg
+	PrivKeyD = "0x364301575de310c3832c2aabc88a98c7a9d3b66dcc7807da7b363c4792510cc9" // 1DZkBjNr3wA1dAQ5RF4L4QSE1JKXNVZQZq
+	PrivKeyE = "0x57529234f5900f9e6fda00637cb6334e5e98be870718e962d84dcc022e67303f" // 191HiSoe1vse54pGMk4tuHJM2NTArjavRj
 	Nodes    = [][]byte{
 		[]byte("1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4"),
 		[]byte("1JRNjdEqp4LJ5fqycUBm9ayCKSeeskgMKR"),
 		[]byte("12evczYyX9ZKPYvwSEvRkRyTjpSrJuLudg"),
+		[]byte("1DZkBjNr3wA1dAQ5RF4L4QSE1JKXNVZQZq"),
+		[]byte("191HiSoe1vse54pGMk4tuHJM2NTArjavRj"),
 	}
 	total      = 10000 * types.Coin
-	totalToken = 100000 * types.Coin
+	totalToken = 10000 * types.Coin
 )
 
 func manageKeySet(key string, value string, db dbm.KV) {
@@ -106,6 +110,26 @@ func initEnv() *execEnv {
 		Frozen:  0,
 		Addr:    string(Nodes[2]),
 	}
+	accountD := types.Account{
+		Balance: total,
+		Frozen:  0,
+		Addr:    string(Nodes[3]),
+	}
+	accountDToken := types.Account{
+		Balance: totalToken,
+		Frozen:  0,
+		Addr:    string(Nodes[3]),
+	}
+	accountE := types.Account{
+		Balance: total,
+		Frozen:  0,
+		Addr:    string(Nodes[4]),
+	}
+	accountEToken := types.Account{
+		Balance: totalToken * 2,
+		Frozen:  0,
+		Addr:    string(Nodes[4]),
+	}
 
 	api := new(apimock.QueueProtocolAPI)
 	api.On("GetConfig", mock.Anything).Return(cfg, nil)
@@ -133,6 +157,18 @@ func initEnv() *execEnv {
 	accC.SaveExecAccount(execAddr, &accountC)
 	manageKeySet("issuance-guarantor", accountC.Addr, stateDB)
 
+	accD := account.NewCoinsAccount(cfg)
+	accD.SetDB(stateDB)
+	accD.SaveExecAccount(execAddr, &accountD)
+	tokenAccD, _ := account.NewAccountDB(cfg, tokenE.GetName(), pkt.CCNYTokenName, stateDB)
+	tokenAccD.SaveExecAccount(execAddr, &accountDToken)
+
+	accE := account.NewCoinsAccount(cfg)
+	accE.SetDB(stateDB)
+	accE.SaveExecAccount(execAddr, &accountE)
+	tokenAccE, _ := account.NewAccountDB(cfg, tokenE.GetName(), pkt.CCNYTokenName, stateDB)
+	tokenAccE.SaveExecAccount(execAddr, &accountEToken)
+
 	return &execEnv{
 		blockTime:   time.Now().Unix(),
 		blockHeight: cfg.GetDappFork(pkt.CollateralizeX, "Enable"),
@@ -150,13 +186,10 @@ func TestCollateralize(t *testing.T) {
 	env := initEnv()
 
 	// collateralize manage
-	p3 := &pkt.CollateralizeManageTx{}
-	p3.Period = 5
-	p3.LiquidationRatio = 0.25
-	p3.DebtCeiling = 100
-	p3.StabilityFeeRatio = 0.0001
-	p3.TotalBalance = 10000
-	createTx, err := pkt.CreateRawCollateralizeManageTx(env.cfg, p3)
+	p3 := &pkt.CollateralizeCollerTx{}
+	p3.Addr = string(Nodes[3])
+	p3.Op = "add"
+	createTx, err := pkt.CreateRawCollateralizeCollerTx(env.cfg, p3)
 	if err != nil {
 		t.Error("RPC_Default_Process", "err", err)
 	}
@@ -187,16 +220,44 @@ func TestCollateralize(t *testing.T) {
 	assert.NotNil(t, set)
 	util.SaveKVList(env.ldb, set.KV)
 
-	// collateralize create
-	p1 := &pkt.CollateralizeCreateTx{
-		TotalBalance: 1000,
-	}
-	createTx, err = pkt.CreateRawCollateralizeCreateTx(env.cfg, p1)
+	p3 = &pkt.CollateralizeCollerTx{}
+	p3.Balance = totalToken * 2
+	p3.Op = "config"
+	createTx, err = pkt.CreateRawCollateralizeCollerTx(env.cfg, p3)
 	if err != nil {
 		t.Error("RPC_Default_Process", "err", err)
 	}
 	createTx.Execer = []byte(pkt.CollateralizeX)
 	createTx, err = signTx(createTx, PrivKeyA)
+	if err != nil {
+		t.Error("RPC_Default_Process sign", "err", err)
+	}
+	receipt, err = exec.Exec(createTx, int(1))
+	assert.Nil(t, err)
+	assert.NotNil(t, receipt)
+	for _, kv := range receipt.KV {
+		env.db.Set(kv.Key, kv.Value)
+	}
+
+	receiptData = &types.ReceiptData{Ty: receipt.Ty, Logs: receipt.Logs}
+	set, err = exec.ExecLocal(createTx, receiptData, int(1))
+	assert.Nil(t, err)
+	assert.NotNil(t, set)
+	util.SaveKVList(env.ldb, set.KV)
+
+	// collateralize lend
+	p1 := &pkt.CollateralizeLendTx{
+		LiquidationRatio:0.25,
+		StabilityFeeRatio:0.0001,
+		Period:5,
+		TotalBalance: 1000,
+	}
+	createTx, err = pkt.CreateRawCollateralizeLendTx(env.cfg, p1)
+	if err != nil {
+		t.Error("RPC_Default_Process", "err", err)
+	}
+	createTx.Execer = []byte(pkt.CollateralizeX)
+	createTx, err = signTx(createTx, PrivKeyE)
 	if err != nil {
 		t.Error("RPC_Default_Process sign", "err", err)
 	}
@@ -224,6 +285,49 @@ func TestCollateralize(t *testing.T) {
 	assert.NotNil(t, res)
 	// query collateralizes by ids
 	var collateralizeIDsS []string
+	collateralizeIDsS = append(collateralizeIDsS, common.ToHex(collateralizeID))
+	res, err = exec.Query("CollateralizeInfoByIDs", types.Encode(&pkt.ReqCollateralizeInfos{CollateralizeIds: collateralizeIDsS}))
+	assert.Nil(t, err)
+	assert.NotNil(t, res)
+
+	p1 = &pkt.CollateralizeLendTx{
+		LiquidationRatio:0.25,
+	 	StabilityFeeRatio:0.0001,
+		Period:5,
+		TotalBalance: 1000,
+	}
+	createTx, err = pkt.CreateRawCollateralizeLendTx(env.cfg, p1)
+	if err != nil {
+		t.Error("RPC_Default_Process", "err", err)
+	}
+	createTx.Execer = []byte(pkt.CollateralizeX)
+	createTx, err = signTx(createTx, PrivKeyD)
+	if err != nil {
+		t.Error("RPC_Default_Process sign", "err", err)
+	}
+
+	receipt, err = exec.Exec(createTx, int(1))
+	assert.Nil(t, err)
+	assert.NotNil(t, receipt)
+	for _, kv := range receipt.KV {
+		env.db.Set(kv.Key, kv.Value)
+	}
+
+	receiptData = &types.ReceiptData{Ty: receipt.Ty, Logs: receipt.Logs}
+	set, err = exec.ExecLocal(createTx, receiptData, int(1))
+	assert.Nil(t, err)
+	assert.NotNil(t, set)
+	util.SaveKVList(env.ldb, set.KV)
+	collateralizeID = createTx.Hash()
+	// query collateralize by id
+	res, err = exec.Query("CollateralizeInfoByID", types.Encode(&pkt.ReqCollateralizeInfo{CollateralizeId: common.ToHex(collateralizeID)}))
+	assert.Nil(t, err)
+	assert.NotNil(t, res)
+	// query collateralize by status
+	res, err = exec.Query("CollateralizeByStatus", types.Encode(&pkt.ReqCollateralizeByStatus{Status: 1}))
+	assert.Nil(t, err)
+	assert.NotNil(t, res)
+	// query collateralizes by ids
 	collateralizeIDsS = append(collateralizeIDsS, common.ToHex(collateralizeID))
 	res, err = exec.Query("CollateralizeInfoByIDs", types.Encode(&pkt.ReqCollateralizeInfos{CollateralizeIds: collateralizeIDsS}))
 	assert.Nil(t, err)
@@ -641,7 +745,7 @@ func TestCollateralize(t *testing.T) {
 		t.Error("RPC_Default_Process", "err", err)
 	}
 	createTx.Execer = []byte(pkt.CollateralizeX)
-	createTx, err = signTx(createTx, PrivKeyA)
+	createTx, err = signTx(createTx, PrivKeyD)
 	if err != nil {
 		t.Error("RPC_Default_Process sign", "err", err)
 	}

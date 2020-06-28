@@ -213,10 +213,34 @@ func TestIssuance(t *testing.T) {
 	assert.NotNil(t, res)
 
 	// issuance manage
-	p3 := &pkt.IssuanceManageTx{}
-	p3.Addr = append(p3.Addr, string(Nodes[1]))
-	p3.Addr = append(p3.Addr, string(Nodes[2]))
-	createTx, err = pkt.CreateRawIssuanceManageTx(env.cfg, p3)
+	p3 := &pkt.IssuanceIssuerTx{}
+	p3.Addr = string(Nodes[1])
+	p3.Op = "add"
+	createTx, err = pkt.CreateRawIssuanceIssuerTx(env.cfg, p3)
+	if err != nil {
+		t.Error("RPC_Default_Process", "err", err)
+	}
+	createTx.Execer = []byte(pkt.IssuanceX)
+	createTx, err = signTx(createTx, PrivKeyA)
+	if err != nil {
+		t.Error("RPC_Default_Process sign", "err", err)
+	}
+	exec.SetEnv(env.blockHeight+1, env.blockTime+1, env.difficulty)
+	receipt, err = exec.Exec(createTx, int(1))
+	assert.Nil(t, err)
+	assert.NotNil(t, receipt)
+	t.Log(receipt)
+	for _, kv := range receipt.KV {
+		env.db.Set(kv.Key, kv.Value)
+	}
+	receiptData = &types.ReceiptData{Ty: receipt.Ty, Logs: receipt.Logs}
+	set, err = exec.ExecLocal(createTx, receiptData, int(1))
+	assert.Nil(t, err)
+	assert.NotNil(t, set)
+	util.SaveKVList(env.ldb, set.KV)
+
+	p3.Addr = string(Nodes[2])
+	createTx, err = pkt.CreateRawIssuanceIssuerTx(env.cfg, p3)
 	if err != nil {
 		t.Error("RPC_Default_Process", "err", err)
 	}

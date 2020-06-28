@@ -45,3 +45,10 @@ type IssuanceManageTx struct {
 	Addr []string `json:"addr"`
 	Fee  int64    `json:"fee"`
 }
+
+// IssuanceIssuerTx for construction
+type IssuanceIssuerTx struct {
+	Addr string   `json:"addr"`
+	Op   string   `json:"op"`
+	Fee  int64    `json:"fee"`
+}

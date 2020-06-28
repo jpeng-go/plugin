@@ -289,6 +289,69 @@ func getLatestExpireTime(issu *pty.Issuance) int64 {
 }
 
 // IssuanceConfig 设置全局借贷参数（管理员权限）
+func (action *Action) IssuanceIssuer(issuer *pty.IssuanceIssuer) (*types.Receipt, error) {
+	var kv []*types.KeyValue
+	var receipt *types.Receipt
+
+	// 是否配置管理用户
+	if !isRightAddr(pty.ManageKey, action.fromaddr, action.db) {
+		clog.Error("IssuanceIssuer", "addr", action.fromaddr, "error", "Address has no permission to config")
+		return nil, pty.ErrPermissionDeny
+	}
+
+	// 添加大户地址
+	var item types.ConfigItem
+	data, err := action.db.Get(AddrKey())
+	if err != nil {
+		if err != types.ErrNotFound {
+			clog.Error("IssuanceIssuer", "error", err)
+			return nil, err
+		}
+		emptyValue := &types.ArrayConfig{Value: make([]string, 0)}
+		arr := types.ConfigItem_Arr{Arr: emptyValue}
+		item.Value = &arr
+	} else {
+		err = types.Decode(data, &item)
+		if err != nil {
+			clog.Error("IssuanceIssuer", "decode", err)
+			return nil, err
+		}
+	}
+
+	copyValue := *item.GetArr()
+	copyItem := item
+	copyItem.Value = &types.ConfigItem_Arr{Arr: &copyValue}
+
+	switch issuer.Op {
+	case "add":
+		item.GetArr().Value = append(item.GetArr().Value, issuer.IssuerAddr)
+		clog.Info("IssuanceIssuer", "add issuer addr. from", copyItem.GetArr().Value, "to", item.GetArr().Value)
+
+	case "delete":
+		item.GetArr().Value = make([]string, 0)
+		for _, value := range copyItem.GetArr().Value {
+			if value != issuer.IssuerAddr {
+				item.GetArr().Value = append(item.GetArr().Value, value)
+			}
+		}
+		clog.Info("IssuanceIssuer", "delete issuer addr", issuer.IssuerAddr, "now", item.GetArr().Value)
+	}
+
+
+	value := types.Encode(&item)
+	err = action.db.Set(AddrKey(), value)
+	if err != nil {
+		clog.Error("IssuanceIssuer", "db.set", err)
+		return nil, err
+	}
+	kv = append(kv, &types.KeyValue{Key: AddrKey(), Value: value})
+
+	receipt = &types.Receipt{Ty: types.ExecOk, KV: kv, Logs: nil}
+	return receipt, nil
+}
+
+// IssuanceConfig 设置全局借贷参数（管理员权限）
+// Deprecated
 func (action *Action) IssuanceManage(manage *pty.IssuanceManage) (*types.Receipt, error) {
 	var kv []*types.KeyValue
 	var receipt *types.Receipt

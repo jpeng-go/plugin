@@ -12,6 +12,7 @@ const (
 	IssuanceActionFeed              // 发行合约喂价
 	IssuanceActionClose             // 关闭借贷
 	IssuanceActionManage            // 借贷管理
+	IssuanceActionIssuer            // 发行权限管理
 
 	//log for Issuance
 	TyLogIssuanceCreate = 741

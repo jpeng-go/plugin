@@ -27,6 +27,8 @@ func CollateralizeCmd() *cobra.Command {
 		CollateralizePriceFeedRawTxCmd(),
 		CollateralizeRetrieveRawTxCmd(),
 		CollateralizeManageRawTxCmd(),
+		CollateralizeCollerRawTxCmd(),
+		CollateralizeLendRawTxCmd(),
 		CollateralizeQueryCmd(),
 	)
 
@@ -311,6 +313,90 @@ func CollateralizeManage(cmd *cobra.Command, args []string) {
 		ActionName: "CollateralizeManage",
 		Payload: []byte(fmt.Sprintf("{\"debtCeiling\":%f, \"liquidationRatio\":%f, \"stabilityFeeRatio\":%f, \"period\":%d, \"totalBalance\":%f}",
 			debtCeiling, liquidationRatio, stabilityFeeRatio, period, totalBalance)),
+	}
+
+	var res string
+	ctx := jsonrpc.NewRPCCtx(rpcLaddr, "Chain33.CreateTransaction", params, &res)
+	ctx.RunWithoutMarshal()
+}
+
+// CollateralizeCollerRawTxCmd 生成放贷配置交易命令行
+func CollateralizeCollerRawTxCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "coller",
+		Short: "coller setting",
+		Run:   CollateralizeColler,
+	}
+	addCollateralizeCollerFlags(cmd)
+	return cmd
+}
+
+func addCollateralizeCollerFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("addr", "a", "", "addr")
+	cmd.Flags().StringP("op", "o", "", "op")
+	cmd.MarkFlagRequired("op")
+	cmd.Flags().Uint64P("balance", "b", 0, "coller balance")
+}
+
+func CollateralizeColler(cmd *cobra.Command, args []string) {
+	title, _ := cmd.Flags().GetString("title")
+	cfg := types.GetCliSysParam(title)
+	if cfg == nil {
+		panic(fmt.Sprintln("can not find CliSysParam title", title))
+	}
+
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	addr, _ := cmd.Flags().GetString("addr")
+	op, _ := cmd.Flags().GetString("op")
+	balance, _ := cmd.Flags().GetUint64("balance")
+
+	params := &rpctypes.CreateTxIn{
+		Execer:     cfg.ExecName(pkt.CollateralizeX),
+		ActionName: "CollateralizeColler",
+		Payload:    []byte(fmt.Sprintf("{\"addr\":\"%s\", \"op\":\"%s\", \"balance\":%d}", addr, op, balance)),
+	}
+
+	var res string
+	ctx := jsonrpc.NewRPCCtx(rpcLaddr, "Chain33.CreateTransaction", params, &res)
+	ctx.RunWithoutMarshal()
+}
+
+// CollateralizeLendRawTxCmd 生成带配置放贷交易命令行
+func CollateralizeLendRawTxCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "lend",
+		Short: "lend a loan",
+		Run:   CollateralizeLend,
+	}
+	addCollateralizeLendFlags(cmd)
+	return cmd
+}
+
+func addCollateralizeLendFlags(cmd *cobra.Command) {
+	cmd.Flags().Float64P("liquidationRatio", "l", 0, "liquidationRatio")
+	cmd.Flags().Float64P("stabilityFeeRatio", "s", 0, "stabilityFeeRatio")
+	cmd.Flags().Uint64P("period", "p", 0, "period")
+	cmd.Flags().Float64P("totalBalance", "b", 0, "totalBalance")
+}
+
+func CollateralizeLend(cmd *cobra.Command, args []string) {
+	title, _ := cmd.Flags().GetString("title")
+	cfg := types.GetCliSysParam(title)
+	if cfg == nil {
+		panic(fmt.Sprintln("can not find CliSysParam title", title))
+	}
+
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	liquidationRatio, _ := cmd.Flags().GetFloat64("liquidationRatio")
+	stabilityFeeRatio, _ := cmd.Flags().GetFloat64("stabilityFeeRatio")
+	period, _ := cmd.Flags().GetUint64("period")
+	totalBalance, _ := cmd.Flags().GetFloat64("totalBalance")
+
+	params := &rpctypes.CreateTxIn{
+		Execer:     cfg.ExecName(pkt.CollateralizeX),
+		ActionName: "CollateralizeLend",
+		Payload: []byte(fmt.Sprintf("{\"liquidationRatio\":%f, \"stabilityFeeRatio\":%f, \"period\":%d, \"totalBalance\":%f}",
+			liquidationRatio, stabilityFeeRatio, period, totalBalance)),
 	}
 
 	var res string
