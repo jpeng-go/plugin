@@ -39,12 +39,14 @@ var (
 	PrivKeyC = "0xc2b31057b8692a56c7dd18199df71c1d21b781c0b6858c52997c9dbf778e8550" // 12evczYyX9ZKPYvwSEvRkRyTjpSrJuLudg
 	PrivKeyD = "0x364301575de310c3832c2aabc88a98c7a9d3b66dcc7807da7b363c4792510cc9" // 1DZkBjNr3wA1dAQ5RF4L4QSE1JKXNVZQZq
 	PrivKeyE = "0x57529234f5900f9e6fda00637cb6334e5e98be870718e962d84dcc022e67303f" // 191HiSoe1vse54pGMk4tuHJM2NTArjavRj
+	PrivKeyF = "0x502118c5eb4d0003ebd3a9f0078157df0ea29bff16f82fb7a9d37cb33ba21a85" // 1Geb4ppNiAwMKKyrJgcis3JA57FkqsXvdR
 	Nodes    = [][]byte{
 		[]byte("1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4"),
 		[]byte("1JRNjdEqp4LJ5fqycUBm9ayCKSeeskgMKR"),
 		[]byte("12evczYyX9ZKPYvwSEvRkRyTjpSrJuLudg"),
 		[]byte("1DZkBjNr3wA1dAQ5RF4L4QSE1JKXNVZQZq"),
 		[]byte("191HiSoe1vse54pGMk4tuHJM2NTArjavRj"),
+		[]byte("1Geb4ppNiAwMKKyrJgcis3JA57FkqsXvdR"),
 	}
 	total      = 10000 * types.Coin
 	totalToken = 10000 * types.Coin
@@ -131,6 +133,17 @@ func initEnv() *execEnv {
 		Addr:    string(Nodes[4]),
 	}
 
+	accountF := types.Account{
+		Balance: total,
+		Frozen:  0,
+		Addr:    string(Nodes[5]),
+	}
+	accountFToken := types.Account{
+		Balance: totalToken,
+		Frozen:  0,
+		Addr:    string(Nodes[5]),
+	}
+
 	api := new(apimock.QueueProtocolAPI)
 	api.On("GetConfig", mock.Anything).Return(cfg, nil)
 
@@ -168,6 +181,14 @@ func initEnv() *execEnv {
 	accE.SaveExecAccount(execAddr, &accountE)
 	tokenAccE, _ := account.NewAccountDB(cfg, tokenE.GetName(), pkt.CCNYTokenName, stateDB)
 	tokenAccE.SaveExecAccount(execAddr, &accountEToken)
+
+	accF := account.NewCoinsAccount(cfg)
+	accF.SetDB(stateDB)
+	accF.SaveExecAccount(execAddr, &accountF)
+	tokenAccF, _ := account.NewAccountDB(cfg, tokenE.GetName(), "DYD", stateDB)
+	tokenAccF.SaveExecAccount(execAddr, &accountFToken)
+	tokenAccF1, _ := account.NewAccountDB(cfg, tokenE.GetName(), pkt.CCNYTokenName, stateDB)
+	tokenAccF1.SaveExecAccount(execAddr, &accountFToken)
 
 	return &execEnv{
 		blockTime:   time.Now().Unix(),
@@ -248,6 +269,32 @@ func TestCollateralize(t *testing.T) {
 	res, err := exec.Query("CollateralizeLendStatus", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, p3.Balance * types.Coin, res.(*pkt.RepCollateralizeLendStatus).ConfigBalance)
+
+	p3 = &pkt.CollateralizeCollerTx{}
+	p3.ID = 1
+	p3.Token = "DYD"
+	p3.Op = "addToken"
+	createTx, err = pkt.CreateRawCollateralizeCollerTx(env.cfg, p3)
+	if err != nil {
+		t.Error("RPC_Default_Process", "err", err)
+	}
+	createTx.Execer = []byte(pkt.CollateralizeX)
+	createTx, err = signTx(createTx, PrivKeyA)
+	if err != nil {
+		t.Error("RPC_Default_Process sign", "err", err)
+	}
+	receipt, err = exec.Exec(createTx, int(1))
+	assert.Nil(t, err)
+	assert.NotNil(t, receipt)
+	for _, kv := range receipt.KV {
+		env.db.Set(kv.Key, kv.Value)
+	}
+
+	receiptData = &types.ReceiptData{Ty: receipt.Ty, Logs: receipt.Logs}
+	set, err = exec.ExecLocal(createTx, receiptData, int(1))
+	assert.Nil(t, err)
+	assert.NotNil(t, set)
+	util.SaveKVList(env.ldb, set.KV)
 
 	// collateralize lend
 	p1 := &pkt.CollateralizeLendTx{
@@ -369,6 +416,34 @@ func TestCollateralize(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, res)
 
+	p2 = &pkt.CollateralizeFeedTx{}
+	p2.Price = append(p2.Price, 1)
+	p2.Volume = append(p2.Volume, 100)
+	p2.CollType = 1
+	createTx, err = pkt.CreateRawCollateralizeFeedTx(env.cfg, p2)
+	if err != nil {
+		t.Error("RPC_Default_Process", "err", err)
+	}
+	createTx.Execer = []byte(pkt.CollateralizeX)
+	createTx, err = signTx(createTx, PrivKeyB)
+	if err != nil {
+		t.Error("RPC_Default_Process sign", "err", err)
+	}
+	exec.SetEnv(env.blockHeight+1, env.blockTime+1, env.difficulty)
+	receipt, err = exec.Exec(createTx, int(1))
+	assert.Nil(t, err)
+	assert.NotNil(t, receipt)
+	t.Log(receipt)
+	for _, kv := range receipt.KV {
+		env.db.Set(kv.Key, kv.Value)
+	}
+
+	receiptData = &types.ReceiptData{Ty: receipt.Ty, Logs: receipt.Logs}
+	set, err = exec.ExecLocal(createTx, receiptData, int(1))
+	assert.Nil(t, err)
+	assert.NotNil(t, set)
+	util.SaveKVList(env.ldb, set.KV)
+
 	// collateralize borrow
 	p4 := &pkt.CollateralizeBorrowTx{
 		CollateralizeID: common.ToHex(collateralizeID),
@@ -431,6 +506,46 @@ func TestCollateralize(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1900 * types.Coin, res.(*pkt.RepCollateralizeLenderBalance).TotalLendingBalance)
 	assert.Equal(t, 100 * types.Coin, res.(*pkt.RepCollateralizeLenderBalance).TotalLentBalance)
+
+	p4 = &pkt.CollateralizeBorrowTx{
+		CollateralizeID: common.ToHex(collateralizeID),
+		Value:           100,
+		CollType:        1,
+	}
+	createTx, err = pkt.CreateRawCollateralizeBorrowTx(env.cfg, p4)
+	if err != nil {
+		t.Error("RPC_Default_Process", "err", err)
+	}
+	createTx.Execer = []byte(pkt.CollateralizeX)
+	createTx, err = signTx(createTx, PrivKeyF)
+	if err != nil {
+		t.Error("RPC_Default_Process sign", "err", err)
+	}
+	exec.SetEnv(env.blockHeight+1, env.blockTime+1, env.difficulty)
+	receipt, err = exec.Exec(createTx, int(1))
+	assert.Nil(t, err)
+	assert.NotNil(t, receipt)
+	t.Log(receipt)
+	for _, kv := range receipt.KV {
+		env.db.Set(kv.Key, kv.Value)
+	}
+
+	receiptData = &types.ReceiptData{Ty: receipt.Ty, Logs: receipt.Logs}
+	set, err = exec.ExecLocal(createTx, receiptData, int(1))
+	assert.Nil(t, err)
+	assert.NotNil(t, set)
+	util.SaveKVList(env.ldb, set.KV)
+	borrowID1 := createTx.Hash()
+	// query collateralize by id
+	res, err = exec.Query("CollateralizeRecordByID",
+		types.Encode(&pkt.ReqCollateralizeRecord{CollateralizeId: common.ToHex(collateralizeID), RecordId: common.ToHex(borrowID1)}))
+	assert.Nil(t, err)
+	assert.NotNil(t, res)
+	// query collateralize by addr
+	res, err = exec.Query("CollateralizeRecordByAddr",
+		types.Encode(&pkt.ReqCollateralizeRecordByAddr{CollateralizeId: common.ToHex(collateralizeID), Addr: string(Nodes[5]), Status: 1}))
+	assert.Nil(t, err)
+	assert.NotNil(t, res)
 
 	// collateralize append
 	p5 := &pkt.CollateralizeAppendTx{
@@ -532,6 +647,43 @@ func TestCollateralize(t *testing.T) {
 	res, err = exec.Query("CollateralizeLendStatus", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(0), res.(*pkt.RepCollateralizeLendStatus).TotalCollBalance)
+
+	p6 = &pkt.CollateralizeRepayTx{
+		CollateralizeID: common.ToHex(collateralizeID),
+		RecordID:        common.ToHex(borrowID1),
+	}
+	createTx, err = pkt.CreateRawCollateralizeRepayTx(env.cfg, p6)
+	if err != nil {
+		t.Error("RPC_Default_Process", "err", err)
+	}
+	createTx.Execer = []byte(pkt.CollateralizeX)
+	createTx, err = signTx(createTx, PrivKeyF)
+	if err != nil {
+		t.Error("RPC_Default_Process sign", "err", err)
+	}
+	exec.SetEnv(env.blockHeight+1, env.blockTime+1, env.difficulty)
+	receipt, err = exec.Exec(createTx, int(1))
+	assert.Nil(t, err)
+	assert.NotNil(t, receipt)
+	t.Log(receipt)
+	for _, kv := range receipt.KV {
+		env.db.Set(kv.Key, kv.Value)
+	}
+
+	receiptData = &types.ReceiptData{Ty: receipt.Ty, Logs: receipt.Logs}
+	set, err = exec.ExecLocal(createTx, receiptData, int(1))
+	assert.Nil(t, err)
+	assert.NotNil(t, set)
+	util.SaveKVList(env.ldb, set.KV)
+	// query collateralize by addr
+	res, err = exec.Query("CollateralizeRecordByAddr",
+		types.Encode(&pkt.ReqCollateralizeRecordByAddr{CollateralizeId: common.ToHex(collateralizeID), Addr: string(Nodes[5]), Status: 6}))
+	assert.Nil(t, err)
+	assert.NotNil(t, res)
+	res, err = exec.Query("CollateralizeRecordByAddr",
+		types.Encode(&pkt.ReqCollateralizeRecordByAddr{Addr: string(Nodes[5]), Status: 6}))
+	assert.Nil(t, err)
+	assert.NotNil(t, res)
 
 	// collateralize liquidate
 	p7 := &pkt.CollateralizeBorrowTx{
