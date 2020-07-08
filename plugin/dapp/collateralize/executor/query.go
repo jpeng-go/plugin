@@ -28,8 +28,12 @@ func (c *Collateralize) Query_CollateralizeInfoByID(req *pty.ReqCollateralizeInf
 		CollateralizeId:   coll.CollateralizeId,
 		CollBalance:       coll.CollBalance,
 	}
-	info.BorrowRecords = append(info.BorrowRecords, coll.BorrowRecords...)
-	info.BorrowRecords = append(info.BorrowRecords, coll.InvalidRecords...)
+	for _, record := range coll.BorrowRecords {
+		info.Records = append(info.Records, ConvertRecordToQuery(record, c.GetStateDB()))
+	}
+	for _, record := range coll.InvalidRecords {
+		info.Records = append(info.Records, ConvertRecordToQuery(record, c.GetStateDB()))
+	}
 
 	return info, nil
 }
@@ -55,9 +59,12 @@ func (c *Collateralize) Query_CollateralizeInfoByIDs(req *pty.ReqCollateralizeIn
 			CollateralizeId:   coll.CollateralizeId,
 			CollBalance:       coll.CollBalance,
 		}
-		info.BorrowRecords = append(info.BorrowRecords, coll.BorrowRecords...)
-		info.BorrowRecords = append(info.BorrowRecords, coll.InvalidRecords...)
-
+		for _, record := range coll.BorrowRecords {
+			info.Records = append(info.Records, ConvertRecordToQuery(record, c.GetStateDB()))
+		}
+		for _, record := range coll.InvalidRecords {
+			info.Records = append(info.Records, ConvertRecordToQuery(record, c.GetStateDB()))
+		}
 		infos.Infos = append(infos.Infos, info)
 	}
 
@@ -96,7 +103,7 @@ func (c *Collateralize) Query_CollateralizeRecordByID(req *pty.ReqCollateralizeR
 		return nil, err
 	}
 
-	ret.Record = issuRecord
+	ret.Record = ConvertRecordToQuery(issuRecord, c.GetStateDB())
 	return ret, nil
 }
 
@@ -109,11 +116,13 @@ func (c *Collateralize) Query_CollateralizeRecordByAddr(req *pty.ReqCollateraliz
 	}
 
 	if req.Status == 0 {
-		ret.Records = records
+		for _, record := range records {
+			ret.Records = append(ret.Records, ConvertRecordToQuery(record, c.GetStateDB()))
+		}
 	} else {
 		for _, record := range records {
 			if record.Status == req.Status {
-				ret.Records = append(ret.Records, record)
+				ret.Records = append(ret.Records, ConvertRecordToQuery(record, c.GetStateDB()))
 			}
 		}
 	}
@@ -130,7 +139,7 @@ func (c *Collateralize) Query_CollateralizeRecordByStatus(req *pty.ReqCollateral
 
 	for _, record := range records {
 		if record.Status == req.Status {
-			ret.Records = append(ret.Records, record)
+			ret.Records = append(ret.Records, ConvertRecordToQuery(record, c.GetStateDB()))
 		}
 	}
 	return ret, nil
@@ -163,7 +172,7 @@ func (c *Collateralize) Query_CollateralizeConfig(req *pty.ReqCollateralizeRecor
 }
 
 func (c *Collateralize) Query_CollateralizePrice(req *pty.ReqCollateralizeRecordByAddr) (types.Message, error) {
-	price, err := getLatestPrice(c.GetStateDB())
+	price, err := getLatestPrice(c.GetStateDB(), pty.CollTypeBTY)
 	if err != nil {
 		clog.Error("Query_CollateralizePrice", "error", err)
 		return nil, err

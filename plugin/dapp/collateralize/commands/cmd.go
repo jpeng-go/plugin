@@ -88,6 +88,7 @@ func addCollateralizeBorrowFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("collateralizeID")
 	cmd.Flags().Float64P("value", "v", 0, "value")
 	cmd.MarkFlagRequired("value")
+	cmd.Flags().Uint64P("type", "t", 0, "type")
 }
 
 func CollateralizeBorrow(cmd *cobra.Command, args []string) {
@@ -100,11 +101,12 @@ func CollateralizeBorrow(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	collateralizeID, _ := cmd.Flags().GetString("collateralizeID")
 	value, _ := cmd.Flags().GetFloat64("value")
+	collType, _ := cmd.Flags().GetUint64("type")
 
 	params := &rpctypes.CreateTxIn{
 		Execer:     cfg.ExecName(pkt.CollateralizeX),
 		ActionName: "CollateralizeBorrow",
-		Payload:    []byte(fmt.Sprintf("{\"collateralizeID\":\"%s\",\"value\":%f}", collateralizeID, value)),
+		Payload:    []byte(fmt.Sprintf("{\"collateralizeID\":\"%s\",\"value\":%f, \"collType\":%d}", collateralizeID, value, collType)),
 	}
 
 	var res string
@@ -207,6 +209,7 @@ func CollateralizePriceFeedRawTxCmd() *cobra.Command {
 }
 
 func addCollateralizePriceFeedFlags(cmd *cobra.Command) {
+	cmd.Flags().Uint32P("type", "t", 0, "type")
 	cmd.Flags().Float64P("price", "p", 0, "price")
 	cmd.MarkFlagRequired("price")
 	cmd.Flags().Uint64P("volume", "v", 0, "volume")
@@ -221,13 +224,14 @@ func CollateralizePriceFeed(cmd *cobra.Command, args []string) {
 	}
 
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	collType, _ := cmd.Flags().GetUint32("type")
 	price, _ := cmd.Flags().GetFloat64("price")
 	volume, _ := cmd.Flags().GetUint64("volume")
 
 	params := &rpctypes.CreateTxIn{
 		Execer:     cfg.ExecName(pkt.CollateralizeX),
 		ActionName: "CollateralizePriceFeed",
-		Payload:    []byte(fmt.Sprintf("{\"price\":[ %f ], \"volume\":[ %d ]}", price, volume)),
+		Payload:    []byte(fmt.Sprintf("{\"price\":[ %f ], \"volume\":[ %d ], \"collType\":%d}", price, volume, collType)),
 	}
 
 	var res string
@@ -336,6 +340,8 @@ func addCollateralizeCollerFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("op", "o", "", "op")
 	cmd.MarkFlagRequired("op")
 	cmd.Flags().Uint64P("balance", "b", 0, "coller balance")
+	cmd.Flags().Uint64P("id", "i", 0, "coller token id")
+	cmd.Flags().StringP("token", "t", "", "coller token name")
 }
 
 func CollateralizeColler(cmd *cobra.Command, args []string) {
@@ -349,11 +355,14 @@ func CollateralizeColler(cmd *cobra.Command, args []string) {
 	addr, _ := cmd.Flags().GetString("addr")
 	op, _ := cmd.Flags().GetString("op")
 	balance, _ := cmd.Flags().GetUint64("balance")
+	id, _ := cmd.Flags().GetUint64("id")
+	token, _ := cmd.Flags().GetString("token")
 
 	params := &rpctypes.CreateTxIn{
 		Execer:     cfg.ExecName(pkt.CollateralizeX),
 		ActionName: "CollateralizeColler",
-		Payload:    []byte(fmt.Sprintf("{\"addr\":\"%s\", \"op\":\"%s\", \"balance\":%d}", addr, op, balance)),
+		Payload:    []byte(fmt.Sprintf("{\"addr\":\"%s\", \"op\":\"%s\", \"balance\":%d, \"id\":%d, \"token\":\"%s\"}",
+			addr, op, balance, id, token)),
 	}
 
 	var res string

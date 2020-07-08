@@ -21,4 +21,5 @@ var (
 	ErrCollateralizeBalanceInvalid    = errors.New("ErrCollateralizeBalanceInvalid")
 	ErrPermissionDeny                 = errors.New("ErrPermissionDeny")
 	ErrCollateralizeRecordNotEmpty    = errors.New("ErrCollateralizeRecordNotEmpty")
+	ErrCollateralizeTokenType         = errors.New("ErrCollateralizeTokenType")
 )

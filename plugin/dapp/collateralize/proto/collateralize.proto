@@ -37,6 +37,23 @@ message BorrowRecord {
     string collateralizeId  = 12; //放贷id
 }
 
+// 借出记录展示
+message QueryBorrowRecord {
+    string accountAddr      = 1;  //借贷人地址
+    int64  startTime        = 2;  //借贷时间
+    int64  collateralValue  = 3;  //抵押物价值(bty和token)
+    string collateralToken  = 4;  //抵押物类型
+    int64  collateralPrice  = 5;  //抵押物价格
+    int64  debtValue        = 6;  //债务价值(ccny)
+    int64  liquidationPrice = 7;  //抵押物清算价格
+    int32  status           = 8;  //抵押状态，是否被清算
+    int64  liquidateTime    = 9;  //清算时间
+    int64  expireTime       = 10; //超时清算时间
+    int32  preStatus        = 11; //上一次抵押状态，用于告警恢复
+    string recordId         = 12; //借贷id，标识一次借出记录
+    string collateralizeId  = 13; //放贷id
+}
+
 // 资产价格记录
 message AssetPriceRecord {
     int64 recordTime = 1; //价格记录时间
@@ -84,9 +101,19 @@ message CollateralizeLend {
 
 // 放贷配置记录
 message CollateralizeColler {
-    string   collerAddr  = 1;
-    int64    balance     = 2;
-    string   op          = 3; //"add":添加放贷地址，"delete":删除放贷地址, "config"：配置放贷权限仓位
+    string   collerAddr         = 1;
+    int64    balance            = 2;
+    CollateralizeTokenItem item = 3;
+    string   op                 = 4; // "add"/"delete":添加/删除放贷地址,  "addToken"/"delToken":增加/删除抵押token类型, "config":配置放贷权限仓位,
+}
+
+message CollateralizeTokenItem{
+    string token = 1; //token名
+    int64 id     = 2; //token id
+}
+
+message CollateralizeTokenConfig{
+    repeated CollateralizeTokenItem items = 1;
 }
 
 // 创建放贷
@@ -156,7 +183,7 @@ message RepCollateralizeCurrentInfo {
     int64    period                     = 8;  //合约期限
     string   collateralizeId            = 9;  //放贷ID
     int64    collBalance                = 10; //抵押bty
-    repeated BorrowRecord borrowRecords = 11; //借贷记录
+    repeated QueryBorrowRecord records  = 11; //借贷记录
 }
 
 // 根据ID列表查询多期放贷信息
@@ -204,7 +231,7 @@ message ReqCollateralizeRecordByStatus {
 
 // 返回借贷记录
 message RepCollateralizeRecords {
-    repeated BorrowRecord records = 1;
+    repeated QueryBorrowRecord records = 1;
 }
 
 // 精确查找借贷记录
@@ -215,7 +242,7 @@ message ReqCollateralizeRecord {
 
 // 返回借贷记录
 message RepCollateralizeRecord {
-    BorrowRecord record = 1;
+    QueryBorrowRecord record = 1;
 }
 
 // 返回放贷配置

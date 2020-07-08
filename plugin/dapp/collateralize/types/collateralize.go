@@ -206,6 +206,9 @@ func CreateRawCollateralizeBorrowTx(cfg *types.Chain33Config, parm *Collateraliz
 		CollateralizeId: parm.CollateralizeID,
 		Value:           int64(math.Trunc((parm.Value+0.0000001)*1e4)) * 1e4,
 	}
+	if parm.CollType != 0 {
+		v.Value = v.Value | (parm.CollType << TokenTypeShift)
+	}
 	borrow := &CollateralizeAction{
 		Ty:    CollateralizeActionBorrow,
 		Value: &CollateralizeAction_Borrow{v},
@@ -291,6 +294,7 @@ func CreateRawCollateralizeFeedTx(cfg *types.Chain33Config, parm *CollateralizeF
 	}
 
 	v := &CollateralizeFeed{
+		CollType: parm.CollType,
 		Volume: parm.Volume,
 	}
 
@@ -387,7 +391,11 @@ func CreateRawCollateralizeCollerTx(cfg *types.Chain33Config, parm *Collateraliz
 		return nil, types.ErrInvalidParam
 	}
 
-	v := &CollateralizeColler{CollerAddr: parm.Addr, Op: parm.Op, Balance: parm.Balance*1e8}
+	item := &CollateralizeTokenItem{
+		Token:    parm.Token,
+		Id:     parm.ID,
+	}
+	v := &CollateralizeColler{CollerAddr: parm.Addr, Op: parm.Op, Balance: parm.Balance*1e8, Item: item}
 
 	coller := &CollateralizeAction{
 		Ty:    CollateralizeActionColler,

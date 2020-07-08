@@ -48,6 +48,13 @@ const (
 	CollateralizeUserStatusClose
 )
 
+const (
+	TokenValueMask = 0xFFFFFFFFFFFFFF
+	TokenTypeMask  = 0x7F00000000000000
+	TokenTypeShift = 56
+	CollTypeBTY    = 0
+)
+
 var (
 	ForkCollateralizeTableUpdate = "ForkCollateralizeTableUpdate"
 	ForkCollateralizeV1R1 = "ForkCollateralizeV1R1"
