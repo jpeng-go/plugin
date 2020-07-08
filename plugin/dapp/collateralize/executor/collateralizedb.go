@@ -248,6 +248,16 @@ func (action *Action) GetRetrieveReceiptLog(collateralize *pty.Collateralize) *t
 	return log
 }
 
+func getLatestLiquidationPrice(coll *pty.Collateralize) int64 {
+	var latest int64
+	for _, collRecord := range coll.BorrowRecords {
+		if collRecord.LiquidationPrice > latest {
+			latest = collRecord.LiquidationPrice
+		}
+	}
+
+	return latest
+}
 // GetIndex returns index in block
 func (action *Action) GetIndex() int64 {
 	return action.height*types.MaxTxsPerBlock + int64(action.index)
@@ -999,6 +1009,11 @@ func (action *Action) CollateralizeBorrow(borrow *pty.CollateralizeBorrow) (*typ
 	borrowRecord.Status = pty.CollateralizeUserStatusCreate
 	borrowRecord.ExpireTime = action.blocktime + coll.Period
 
+	// 记录当前借贷的最高自动清算价格
+	if coll.LatestLiquidationPrice < borrowRecord.LiquidationPrice {
+		coll.LatestLiquidationPrice = borrowRecord.LiquidationPrice
+	}
+
 	// 保存
 	coll.BorrowRecords = append(coll.BorrowRecords, borrowRecord)
 	coll.Status = pty.CollateralizeStatusCreated
@@ -1110,6 +1125,8 @@ func (action *Action) CollateralizeRepay(repay *pty.CollateralizeRepay) (*types.
 	}
 	coll.BorrowRecords = append(coll.BorrowRecords[:index], coll.BorrowRecords[index+1:]...)
 	coll.InvalidRecords = append(coll.InvalidRecords, borrowRecord)
+
+	coll.LatestLiquidationPrice = getLatestLiquidationPrice(&coll.Collateralize)
 	coll.LatestExpireTime = getLatestExpireTime(&coll.Collateralize)
 	coll.Save(action.db)
 	kv = append(kv, coll.GetKVSet()...)
@@ -1217,6 +1234,8 @@ func (action *Action) CollateralizeAppend(cAppend *pty.CollateralizeAppend) (*ty
 	if tokenType == pty.CollTypeBTY {
 		coll.CollBalance += cAppend.CollateralValue
 	}
+
+	coll.LatestLiquidationPrice = getLatestLiquidationPrice(&coll.Collateralize)
 	coll.LatestExpireTime = getLatestExpireTime(&coll.Collateralize)
 	// append操作不更新Index
 	coll.Save(action.db)
@@ -1379,6 +1398,7 @@ func (action *Action) systemLiquidation(coll *pty.Collateralize, price int64, co
 	}
 
 	// 保存
+	coll.LatestLiquidationPrice = getLatestLiquidationPrice(coll)
 	coll.LatestExpireTime = getLatestExpireTime(coll)
 	collDB := &CollateralizeDB{*coll}
 	collDB.Save(action.db)
@@ -1459,6 +1479,7 @@ func (action *Action) expireLiquidation(coll *pty.Collateralize) (*types.Receipt
 	}
 
 	// 保存
+	coll.LatestLiquidationPrice = getLatestLiquidationPrice(coll)
 	coll.LatestExpireTime = getLatestExpireTime(coll)
 	collDB := &CollateralizeDB{*coll}
 	collDB.Save(action.db)
