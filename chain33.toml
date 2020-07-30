@@ -241,6 +241,7 @@ minerwhitelist=["*"]
 rescanMultisigAddr=false
 
 [exec]
+isFree=true
 enableStat=false
 enableMVCC=false
 alias=["token1:token","token2:token","token3:token"]
