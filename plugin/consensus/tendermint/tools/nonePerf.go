@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/33cn/chain33/common/log/log15"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -55,7 +56,7 @@ func main() {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		Put(argsWithoutProg[1], argsWithoutProg[2], "")
+		Put(argsWithoutProg[1], argsWithoutProg[2], nil)
 	case "get":
 		if len(argsWithoutProg) != 3 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -105,7 +106,7 @@ func Perf(ip, size, num, interval, duration string) {
 	} else {
 		numThread = numInt / 10
 	}
-	maxTxPerAcc := 50
+	maxTxPerAcc := 5000
 	ch := make(chan struct{}, numThread)
 	for i := 0; i < numThread; i++ {
 		go func() {
@@ -118,7 +119,7 @@ func Perf(ip, size, num, interval, duration string) {
 						_, priv = genaddress()
 						txCount = 0
 					}
-					Put(ip, size, common.ToHex(priv.Bytes()))
+					Put(ip, size, priv)
 					txCount++
 				}
 				time.Sleep(time.Second * time.Duration(intervalInt))
@@ -132,17 +133,20 @@ func Perf(ip, size, num, interval, duration string) {
 	}
 }
 
+var (
+	log = log15.New("")
+)
+
 // Put ...
-func Put(ip string, size string, privkey string) {
+func Put(ip string, size string, privkey crypto.PrivKey) {
 	sizeInt, err := strconv.Atoi(size)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	url := "http://" + ip + ":8801"
-	if privkey == "" {
-		_, priv := genaddress()
-		privkey = common.ToHex(priv.Bytes())
+	if privkey == nil {
+		_, privkey = genaddress()
 	}
 	payload := RandStringBytes(sizeInt)
 	//fmt.Println("payload:", common.ToHex([]byte(payload)))
@@ -150,7 +154,7 @@ func Put(ip string, size string, privkey string) {
 	tx := &types.Transaction{Execer: []byte("user.write"), Payload: []byte(payload), Fee: 1e6}
 	tx.To = address.ExecAddress("user.write")
 	tx.Expire = TxHeightOffset + types.TxHeightFlag
-	tx.Sign(types.SECP256K1, getprivkey(privkey))
+	tx.Sign(types.SECP256K1, privkey)
 	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":2,"method":"Chain33.SendTransaction","params":[{"data":"%v"}]}`,
 		common.ToHex(types.Encode(tx)))
 
@@ -165,8 +169,8 @@ func Put(ip string, size string, privkey string) {
 		fmt.Println(err)
 		return
 	}
-
-	fmt.Printf("returned JSON: %s\n", string(b))
+	log.Debug("sendtx", "result", string(b))
+	//fmt.Printf("returned JSON: %s\n", string(b))
 }
 
 // Get ...
@@ -211,7 +215,7 @@ func setTxHeight(ip string) {
 		fmt.Println(err)
 		return
 	}
-	TxHeightOffset = msg.Result.Height
+	TxHeightOffset = msg.Result.Height + types.LowAllowPackHeight
 	fmt.Println("TxHeightOffset:", TxHeightOffset)
 }
 
