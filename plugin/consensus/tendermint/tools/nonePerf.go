@@ -6,11 +6,13 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/33cn/chain33/common/log/log15"
+	"google.golang.org/grpc"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -99,6 +101,7 @@ func Perf(ip, size, num, interval, duration string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
+	sizeInt, _ := strconv.Atoi(size)
 	if numInt < 10 {
 		numThread = 1
 	} else if numInt > 100 {
@@ -106,20 +109,31 @@ func Perf(ip, size, num, interval, duration string) {
 	} else {
 		numThread = numInt / 10
 	}
-	maxTxPerAcc := 5000
+	maxTxPerAcc := 10000
 	ch := make(chan struct{}, numThread)
+	payload := RandStringBytes(sizeInt)
 	for i := 0; i < numThread; i++ {
 		go func() {
+
+			conn, err := grpc.Dial(ip+":8802", grpc.WithInsecure())
+			if err != nil {
+				log.Error("grpc dial", "err", err)
+				return
+			}
+			defer conn.Close()
+			gcli := types.NewChain33Client(conn)
+
 			txCount := 0
 			_, priv := genaddress()
 			for sec := 0; durInt == 0 || sec < durInt; {
-				setTxHeight(ip)
+				height := getHeight(gcli)
+				payload = RandStringBytes(sizeInt)
 				for txs := 0; txs < numInt/numThread; txs++ {
 					if txCount >= maxTxPerAcc {
 						_, priv = genaddress()
 						txCount = 0
 					}
-					Put(ip, size, priv)
+					send(gcli, height, payload, priv)
 					txCount++
 				}
 				time.Sleep(time.Second * time.Duration(intervalInt))
@@ -134,8 +148,33 @@ func Perf(ip, size, num, interval, duration string) {
 }
 
 var (
-	log = log15.New("")
+	log = log15.New()
+	execAddr = address.ExecAddress("user.write")
 )
+
+func getHeight(gcli types.Chain33Client) int64 {
+	header, err := gcli.GetLastHeader(context.Background(), &types.ReqNil{})
+	if err != nil {
+		log.Error("getHeight", "err", err)
+	}
+	return header.Height
+}
+
+func send(gcli types.Chain33Client, height int64, payload string, privkey crypto.PrivKey) {
+
+	tx := &types.Transaction{Execer: []byte("user.write"), Payload: types.Str2Bytes(payload), Fee: 1e6}
+	tx.To = execAddr
+	tx.Nonce = rand.Int63()
+	tx.Expire = height + types.TxHeightFlag + types.LowAllowPackHeight
+	tx.Sign(types.SECP256K1, privkey)
+
+	_, err := gcli.SendTransaction(context.Background(), tx)
+	if err != nil {
+		log.Error("sendtx", "err", err)
+	}else {
+		//log.Debug("sendtx", "hash", common.ToHex(reply.Msg))
+	}
+}
 
 // Put ...
 func Put(ip string, size string, privkey crypto.PrivKey) {
@@ -153,7 +192,7 @@ func Put(ip string, size string, privkey crypto.PrivKey) {
 
 	tx := &types.Transaction{Execer: []byte("user.write"), Payload: []byte(payload), Fee: 1e6}
 	tx.To = address.ExecAddress("user.write")
-	tx.Expire = TxHeightOffset + types.TxHeightFlag
+	tx.Expire = TxHeightOffset + types.TxHeightFlag + types.LowAllowPackHeight
 	tx.Sign(types.SECP256K1, privkey)
 	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":2,"method":"Chain33.SendTransaction","params":[{"data":"%v"}]}`,
 		common.ToHex(types.Encode(tx)))
