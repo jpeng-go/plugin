@@ -25,6 +25,7 @@ require (
 	github.com/golang/protobuf v1.3.4
 	github.com/google/go-cmp v0.4.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4
+	github.com/holiman/uint256 v1.1.1
 	github.com/huin/goupnp v1.0.0
 	github.com/jackpal/go-nat-pmp v1.0.2
 	github.com/miguelmota/go-solidity-sha3 v0.1.0
@@ -44,7 +45,8 @@ require (
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
 	go.uber.org/zap v1.15.0 // indirect
 	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9
-	golang.org/x/net v0.0.0-20200519113804-d87ec0cfa476
+	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
+	golang.org/x/sys v0.0.0-20200615200032-f1bc736245b1
 	golang.org/x/time v0.0.0-20190921001708-c4c64cad1fd0 // indirect
 	google.golang.org/grpc v1.28.0
 )

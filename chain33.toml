@@ -2,6 +2,7 @@ Title="local"
 TestNet=true
 FixTime=false
 version="6.3.0"
+TxHeight=true
 
 
 [log]
