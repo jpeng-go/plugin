@@ -84,24 +84,24 @@ func LoadHelp() {
 }
 
 // Perf ...
-func Perf(ip, size, num, interval, duration string) {
+func Perf(ip, txsize, num, sleepinterval, totalduration string) {
 	var numThread int
 	numInt, err := strconv.Atoi(num)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	intervalInt, err := strconv.Atoi(interval)
+	intervalInt, err := strconv.Atoi(sleepinterval)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	durInt, err := strconv.Atoi(duration)
+	durInt, err := strconv.Atoi(totalduration)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	sizeInt, _ := strconv.Atoi(size)
+	sizeInt, _ := strconv.Atoi(txsize)
 	if numInt < 10 {
 		numThread = 1
 	} else if numInt > 100 {
