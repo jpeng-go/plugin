@@ -168,11 +168,11 @@ func send(gcli types.Chain33Client, height int64, payload string, privkey crypto
 	tx.Expire = height + types.TxHeightFlag + types.LowAllowPackHeight
 	tx.Sign(types.SECP256K1, privkey)
 
-	_, err := gcli.SendTransaction(context.Background(), tx)
+	reply, err := gcli.SendTransaction(context.Background(), tx)
 	if err != nil {
 		log.Error("sendtx", "err", err)
 	}else {
-		//log.Debug("sendtx", "hash", common.ToHex(reply.Msg))
+		log.Debug("sendtx", "hash", common.ToHex(reply.Msg))
 	}
 }
 
