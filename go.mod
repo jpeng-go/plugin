@@ -29,7 +29,7 @@ require (
 	github.com/huin/goupnp v1.0.0
 	github.com/jackpal/go-nat-pmp v1.0.2
 	github.com/miguelmota/go-solidity-sha3 v0.1.0
-	github.com/mr-tron/base58 v1.1.3
+	github.com/mr-tron/base58 v1.2.0
 	github.com/pborman/uuid v1.2.0
 	github.com/phoreproject/bls v0.0.0-20200525203911-a88a5ae26844
 	github.com/pkg/errors v0.9.1
@@ -43,7 +43,6 @@ require (
 	github.com/tjfoc/gmsm v1.3.1
 	github.com/valyala/fasthttp v1.5.0
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
-	go.uber.org/zap v1.15.0 // indirect
 	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
 	golang.org/x/sys v0.0.0-20200615200032-f1bc736245b1
