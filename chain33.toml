@@ -54,6 +54,9 @@ enableFetchP2pstore=false
 # 使能假设已删除已归档数据后,获取数据情况
 enableIfDelLocalChunk=false
 
+[pprof]
+listenAddr=":6060"
+
 [p2p]
 # p2p类型
 types=["dht"]
@@ -92,6 +95,7 @@ isFullNode=true
 # 若本节点不是全节点，则需要配置全节点地址，当在分片网络中查不到数据时，会到全节点上获取数据
 # 格式: "/ip4/139.196.46.175/tcp/13803/p2p/16Uiu2HAkvnDRF8HQTTU5Uu5GmtbLDrgPxCwgVsn2QQ9VEU7Eiwjw"
 fullNodes=[]
+disablePubSubMsgSign=true
 
 
 
