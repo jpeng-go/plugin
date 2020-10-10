@@ -109,7 +109,7 @@ func Perf(ip, txsize, num, sleepinterval, totalduration string) {
 	} else {
 		numThread = numInt / 10
 	}
-	maxTxPerAcc := 10000
+	maxTxPerAcc := 100000
 	ch := make(chan struct{}, numThread)
 	payload := RandStringBytes(sizeInt)
 	for i := 0; i < numThread; i++ {
@@ -128,12 +128,21 @@ func Perf(ip, txsize, num, sleepinterval, totalduration string) {
 			for sec := 0; durInt == 0 || sec < durInt; {
 				height := getHeight(gcli)
 				payload = RandStringBytes(sizeInt)
+				tx := &types.Transaction{Execer: []byte("user.write"), Payload: types.Str2Bytes(payload)}
+				tx.To = execAddr
+				tx.Nonce = rand.Int63()
+				tx.Expire = height + types.TxHeightFlag + types.LowAllowPackHeight
 				for txs := 0; txs < numInt/numThread; txs++ {
 					if txCount >= maxTxPerAcc {
 						_, priv = genaddress()
 						txCount = 0
 					}
-					send(gcli, height, payload, priv)
+					tx.Nonce += int64(txs)
+					tx.Sign(types.SECP256K1, priv)
+					_, err := gcli.SendTransaction(context.Background(), tx)
+					if err != nil {
+						log.Error("sendtx", "err", err)
+					}
 					txCount++
 				}
 				time.Sleep(time.Second * time.Duration(intervalInt))
@@ -160,14 +169,9 @@ func getHeight(gcli types.Chain33Client) int64 {
 	return header.Height
 }
 
-func send(gcli types.Chain33Client, height int64, payload string, privkey crypto.PrivKey) {
+func send(gcli types.Chain33Client, height int64, tx *types.Transaction, privkey crypto.PrivKey) {
 
-	tx := &types.Transaction{Execer: []byte("user.write"), Payload: types.Str2Bytes(payload), Fee: 1e6}
-	tx.To = execAddr
-	tx.Nonce = rand.Int63()
-	tx.Expire = height + types.TxHeightFlag + types.LowAllowPackHeight
 	tx.Sign(types.SECP256K1, privkey)
-
 	reply, err := gcli.SendTransaction(context.Background(), tx)
 	if err != nil {
 		log.Error("sendtx", "err", err)
