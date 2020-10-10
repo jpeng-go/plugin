@@ -110,7 +110,7 @@ grpcFuncWhitelist=["*"]
 [mempool]
 name="price"
 poolCacheSize=102400
-maxTxNumPerAccount=100000
+maxTxNumPerAccount=102400
 # 最小得交易手续费率，这个没有默认值，必填，一般是0.001 coins
 minTxFeeRate=0
 # 最大的交易手续费率, 0.1 coins
