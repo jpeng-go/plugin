@@ -17,7 +17,11 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"runtime"
 	"strconv"
+	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/33cn/chain33/common"
@@ -26,10 +30,11 @@ import (
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	"github.com/33cn/chain33/types"
 	ty "github.com/33cn/plugin/plugin/dapp/valnode/types"
+	_ "google.golang.org/grpc/encoding/gzip"
 )
 
 const fee = 1e6
-const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789-=_+=/<>!@#$%^&"
 
 var r *rand.Rand
 
@@ -91,16 +96,16 @@ func Perf(ip, txsize, num, sleepinterval, totalduration string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	intervalInt, err := strconv.Atoi(sleepinterval)
+	sleep, err := strconv.Atoi(sleepinterval)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	durInt, err := strconv.Atoi(totalduration)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
+	//durInt, err := strconv.Atoi(totalduration)
+	//if err != nil {
+	//	fmt.Fprintln(os.Stderr, err)
+	//	return
+	//}
 	sizeInt, _ := strconv.Atoi(txsize)
 	if numInt < 10 {
 		numThread = 1
@@ -109,48 +114,89 @@ func Perf(ip, txsize, num, sleepinterval, totalduration string) {
 	} else {
 		numThread = numInt / 10
 	}
-	maxTxPerAcc := 100000
+	numThread = runtime.NumCPU()
 	ch := make(chan struct{}, numThread)
-	payload := RandStringBytes(sizeInt)
+	txChan := make(chan *types.Transaction, numInt)
+	//payload := RandStringBytes(sizeInt)
+	var blockHeight int64
+
+	go func() {
+		ch <- struct{}{}
+		conn := newGrpcConn(ip)
+		defer conn.Close()
+		gcli := types.NewChain33Client(conn)
+		for {
+
+			height, err := getHeight(gcli)
+			if err != nil {
+				//conn.Close()
+				log.Error("getHeight", "err", err)
+				//conn = newGrpcConn(ip)
+				//gcli = types.NewChain33Client(conn)
+				time.Sleep(time.Second)
+			}else {
+				atomic.StoreInt64(&blockHeight, height)
+			}
+			time.Sleep(time.Millisecond * 500)
+		}
+	}()
+	<-ch
+
 	for i := 0; i < numThread; i++ {
 		go func() {
+			_, priv := genaddress()
+			for {
 
-			conn, err := grpc.Dial(ip+":8802", grpc.WithInsecure())
-			if err != nil {
-				log.Error("grpc dial", "err", err)
-				return
+				height := atomic.LoadInt64(&blockHeight)
+				for txs := 0; txs < numInt/numThread; txs++ {
+					tx := txPool.Get().(*types.Transaction)
+					tx.To = execAddr
+					tx.Fee = rand.Int63()
+					tx.Nonce = time.Now().UnixNano()
+					tx.Expire = height + types.TxHeightFlag + types.LowAllowPackHeight
+					tx.Payload = RandStringBytes(sizeInt)
+					tx.Sign(types.SECP256K1, priv)
+					txChan <- tx
+				}
+				if sleep > 0 {
+					time.Sleep(time.Second)
+				}
 			}
+		}()
+	}
+
+
+
+	for i:=0; i< numThread*2; i++ {
+		go func() {
+			conn := newGrpcConn(ip)
 			defer conn.Close()
 			gcli := types.NewChain33Client(conn)
 
-			txCount := 0
-			_, priv := genaddress()
-			for sec := 0; durInt == 0 || sec < durInt; {
-				height := getHeight(gcli)
-				payload = RandStringBytes(sizeInt)
-				tx := &types.Transaction{Execer: []byte("user.write"), Payload: types.Str2Bytes(payload)}
-				tx.To = execAddr
-				tx.Nonce = rand.Int63()
-				tx.Expire = height + types.TxHeightFlag + types.LowAllowPackHeight
-				for txs := 0; txs < numInt/numThread; txs++ {
-					if txCount >= maxTxPerAcc {
-						_, priv = genaddress()
-						txCount = 0
+
+			for tx := range txChan {
+				_, err := gcli.SendTransaction(context.Background(), tx, grpc.UseCompressor("gzip"))
+
+				txPool.Put(tx)
+				if err != nil {
+					if strings.Contains(err.Error(), "ErrTxExpire"){
+						continue
 					}
-					tx.Nonce += int64(txs)
-					tx.Sign(types.SECP256K1, priv)
-					_, err := gcli.SendTransaction(context.Background(), tx)
-					if err != nil {
-						log.Error("sendtx", "err", err)
+					if strings.Contains(err.Error(), "ErrMemFull"){
+						time.Sleep(time.Second)
+						continue
 					}
-					txCount++
+
+					log.Error("sendtx", "err", err)
+					time.Sleep(time.Second)
+					//conn.Close()
+					//conn = newGrpcConn(ip)
+					//gcli = types.NewChain33Client(conn)
 				}
-				time.Sleep(time.Second * time.Duration(intervalInt))
-				sec += intervalInt
 			}
-			ch <- struct{}{}
 		}()
 	}
+
 	for j := 0; j < numThread; j++ {
 		<-ch
 	}
@@ -161,23 +207,31 @@ var (
 	execAddr = address.ExecAddress("user.write")
 )
 
-func getHeight(gcli types.Chain33Client) int64 {
+func getHeight(gcli types.Chain33Client) (int64, error) {
 	header, err := gcli.GetLastHeader(context.Background(), &types.ReqNil{})
 	if err != nil {
 		log.Error("getHeight", "err", err)
+		return 0, err
 	}
-	return header.Height
+	return header.Height, nil
 }
 
-func send(gcli types.Chain33Client, height int64, tx *types.Transaction, privkey crypto.PrivKey) {
+var txPool = sync.Pool{
+	New: func() interface{}{
+		tx := &types.Transaction{Execer: []byte("user.write")}
+		return tx
+	},
+}
 
-	tx.Sign(types.SECP256K1, privkey)
-	reply, err := gcli.SendTransaction(context.Background(), tx)
-	if err != nil {
-		log.Error("sendtx", "err", err)
-	}else {
-		log.Debug("sendtx", "hash", common.ToHex(reply.Msg))
+func newGrpcConn(host string) *grpc.ClientConn{
+
+	conn, err := grpc.Dial(host, grpc.WithInsecure())
+	for err != nil {
+		log.Error("grpc dial", "err", err)
+		time.Sleep(time.Millisecond * 100)
+		conn, err = grpc.Dial(host, grpc.WithInsecure())
 	}
+	return conn
 }
 
 // Put ...
@@ -300,13 +354,13 @@ func genaddress() (string, crypto.PrivKey) {
 }
 
 // RandStringBytes ...
-func RandStringBytes(n int) string {
+func RandStringBytes(n int) []byte {
 	b := make([]byte, n)
 	rand.Seed(time.Now().UnixNano())
 	for i := range b {
 		b[i] = letterBytes[rand.Intn(len(letterBytes))]
 	}
-	return string(b)
+	return b
 }
 
 // ValNode ...
