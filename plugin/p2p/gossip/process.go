@@ -114,7 +114,7 @@ func (n *Node) sendBlock(block *types.P2PBlock, p2pData *types.BroadCastData, pe
 		return false
 	}
 
-	if peerVersion >= lightBroadCastVersion && len(block.Block.Txs) >= int(n.nodeInfo.cfg.MinLtBlockTxNum) {
+	if peerVersion >= lightBroadCastVersion && types.Size(block.GetBlock()) >= int(n.nodeInfo.cfg.MinLtBlockSize * 1024) {
 
 		ltBlock := &types.LightBlock{}
 		ltBlock.Size = int64(types.Size(block.Block))
@@ -156,6 +156,12 @@ func (n *Node) sendTx(tx *types.P2PTx, p2pData *types.BroadCastData, peerVersion
 
 	txHash := hex.EncodeToString(tx.Tx.Hash())
 	ttl := tx.GetRoute().GetTTL()
+
+	//超过最大的ttl, 不再发送
+	if ttl > n.nodeInfo.cfg.MaxTTL {
+		return false
+	}
+
 	isLightSend := peerVersion >= lightBroadCastVersion && ttl >= n.nodeInfo.cfg.LightTxTTL
 	//检测冗余发送
 	ignoreSend := false
@@ -169,10 +175,6 @@ func (n *Node) sendTx(tx *types.P2PTx, p2pData *types.BroadCastData, peerVersion
 		"peerAddr", peerAddr, "ignoreSend", ignoreSend)
 
 	if ignoreSend {
-		return false
-	}
-	//超过最大的ttl, 不再发送
-	if ttl > n.nodeInfo.cfg.MaxTTL {
 		return false
 	}
 
